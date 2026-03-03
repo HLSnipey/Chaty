@@ -899,28 +899,28 @@ document.addEventListener("click", async e => {
 });
 
 async function reactTo(type, id, emoji) {
-  if(!canReact()) return; // Prevent spam
-  const uid = currentUser.uid;
   try {
     if(type === "post") {
       const ref = doc(db,"posts",id);
       const snap = await getDoc(ref);
+      if(!snap.exists()) return;
       const reactions = snap.data()?.reactions || {};
       const cur = reactions[emoji] || [];
-      const update = cur.includes(uid)
-        ? { [`reactions.${emoji}`]: arrayRemove(uid) }
-        : { [`reactions.${emoji}`]: arrayUnion(uid) };
+      const update = cur.includes(currentUser.uid)
+        ? { [`reactions.${emoji}`]: arrayRemove(currentUser.uid) }
+        : { [`reactions.${emoji}`]: arrayUnion(currentUser.uid) };
       await updateDoc(ref, update);
     } else if(type === "msg") {
       const parts = id.split("__");
       const chatId = parts[0], msgId = parts[1];
       const ref = doc(db,"chats",chatId,"messages",msgId);
       const snap = await getDoc(ref);
+      if(!snap.exists()) return;
       const reactions = snap.data()?.reactions || {};
       const cur = reactions[emoji] || [];
-      const update = cur.includes(uid)
-        ? { [`reactions.${emoji}`]: arrayRemove(uid) }
-        : { [`reactions.${emoji}`]: arrayUnion(uid) };
+      const update = cur.includes(currentUser.uid)
+        ? { [`reactions.${emoji}`]: arrayRemove(currentUser.uid) }
+        : { [`reactions.${emoji}`]: arrayUnion(currentUser.uid) };
       await updateDoc(ref, update);
     }
   } catch(err) {
@@ -1479,16 +1479,6 @@ $("btn-cam").addEventListener("click", () => {
 // ══════════════════════════════════════════════════════════════════
 //  UTILS
 // ══════════════════════════════════════════════════════════════════
-const REACT_COOLDOWN = 500; // ms between reactions
-let lastReactTime = 0;
-
-function canReact() {
-  const now = Date.now();
-  if(now - lastReactTime < REACT_COOLDOWN) return false;
-  lastReactTime = now;
-  return true;
-}
-
 function escapeHtml(str) {
   return (str||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");
 }
