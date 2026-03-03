@@ -571,7 +571,7 @@ import {
 import {
   getFirestore, collection, doc, getDoc, getDocs, addDoc,
   updateDoc, onSnapshot, query, orderBy, where, serverTimestamp,
-  arrayUnion, arrayRemove, increment, limit, setDoc
+  arrayUnion, arrayRemove, increment, limit, setDoc, deleteDoc
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const app = initializeApp(firebaseConfig);
@@ -666,12 +666,11 @@ $("btn-signup").addEventListener("click", async () => {
   try {
     const cred = await createUserWithEmailAndPassword(auth, email, pass);
     try {
-      await updateDoc(doc(db,"users",cred.user.uid), {
+      await setDoc(doc(db,"users",cred.user.uid), {
         name, email, uid: cred.user.uid, createdAt: serverTimestamp()
       });
     } catch(firestoreErr) {
-      // If doc doesn't exist, create it via simple update
-      console.warn("Profile save failed, will be created on next login");
+      console.error("Profile save failed:", firestoreErr);
     }
   } catch(e) {
     setErr(e.code === "auth/email-already-in-use" ? "Email already registered" : e.message);
