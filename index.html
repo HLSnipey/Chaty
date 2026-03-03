@@ -583,9 +583,7 @@ const db = getFirestore(app);
 // ══════════════════════════════════════════════════════════════════
 let currentUser = null;
 let allUsers = {};
-let activeChatId = null;
-let activeChatIsGroup = false;
-let activeChatMembers = [];
+let activeChatId = null; // Keep for backward compatibility, but use chatWith instead
 let msgUnsub = null;
 let chatsUnsub = null;
 let postsUnsub = null;
@@ -1068,6 +1066,8 @@ $("people-search").addEventListener("input", () => {
 // ══════════════════════════════════════════════════════════════════
 //  CHAT
 // ══════════════════════════════════════════════════════════════════
+let chatWith = null, chatWithName = null; // Current 1:1 chat partner
+
 async function openDmWith(otherUid) {
   showPage("chat");
   // ensure user cache is loaded
@@ -1075,18 +1075,12 @@ async function openDmWith(otherUid) {
     const snap = await getDoc(doc(db,"users",otherUid));
     if(snap.exists()) allUsers[otherUid] = snap.data();
   }
-  const members = [currentUser.uid, otherUid].sort();
-  const roomId = members.join("_");
-  const ref = doc(db,"chats",roomId);
-  const snap = await getDoc(ref);
-  if(!snap.exists()) {
-    await setDoc(ref, { members, isGroup: false, createdAt: serverTimestamp() });
-  }
-  openChat(roomId, false);
+  const name = allUsers[otherUid]?.name || otherUid;
+  openChat(otherUid, name);
 }
 
 function listenChats() {
-  const q = query(collection(db,"chats"), where("members","array-contains",currentUser.uid));
+  const q = query(collection(db,"users"), where("uid","!=",currentUser.uid));
   chatsUnsub = onSnapshot(q, snap => {
     const list = [];
     snap.forEach(d => list.push({ id: d.id, ...d.data() }));
@@ -1094,67 +1088,47 @@ function listenChats() {
   });
 }
 
-function renderChatList(chats) {
-  const list = $("chat-list"); list.innerHTML = "";
-  let totalUnread = 0;
-  chats.sort((a,b) => (b.lastTs||0) - (a.lastTs||0));
-  chats.forEach(ch => {
-    const name = ch.isGroup ? ch.name : getChatName(ch.members);
-    const item = el("div","chat-item");
-    item.dataset.chatId = ch.id;
-    if(ch.id === activeChatId) item.classList.add("active");
-    const unread = ch[`unread_${currentUser.uid}`]||0;
-    totalUnread += unread;
-    item.innerHTML = `
-      <div class="chat-item-avatar">${avatarLetter(name)}</div>
-      <div class="chat-item-info">
-        <div class="chat-item-name">${escapeHtml(name)}</div>
-        <div class="chat-item-preview">${escapeHtml(ch.lastMsg||"")}</div>
-      </div>
-      ${unread > 0 ? `<div class="chat-item-badge">${unread}</div>` : ""}`;
-    item.addEventListener("click", () => openChat(ch.id, ch.isGroup, ch));
-    list.appendChild(item);
+function renderChatList(list) {
+  const el = $("chat-list");
+  if(!list.length){ el.innerHTML='<p style="padding:12px;color:var(--muted);font-size:.8rem">No users found.</p>'; return; }
+  el.innerHTML = list.map(u => {
+    const act = chatWith === u.uid ? ' active' : '';
+    return '<div class="cs-row'+act+'" data-uid="'+u.uid+'" data-name="'+escapeHtml(u.name)+'">'
+      +'<div class="cs-av" style="background:linear-gradient(135deg,#667eea,#764ba2)">'+u.name[0].toUpperCase()+'</div>'
+      +'<div class="cs-info"><div class="cs-name">'+escapeHtml(u.name)+'</div><div class="cs-last">'+escapeHtml(u.email||'')+'</div></div>'
+      +'<button class="chat-btn-sm">Chat</button>'
+      +'</div>';
+  }).join('');
+  el.querySelectorAll('.cs-row').forEach(row => {
+    row.addEventListener('click', () => openChat(row.dataset.uid, row.dataset.name));
   });
-  const badge = $("chat-badge");
-  badge.textContent = totalUnread > 0 ? totalUnread : "";
-  badge.dataset.count = totalUnread;
 }
 
-function getChatName(members) {
-  const other = members.find(uid => uid !== currentUser.uid);
-  return allUsers[other]?.name || other || "Chat";
-}
+function openChat(uid, uname) {
+  // highlight in sidebar
+  document.querySelectorAll('.cs-row').forEach(r => r.classList.remove('active'));
+  const row = document.querySelector('[data-uid="'+uid+'"]');
+  if(row) row.classList.add('active');
 
-function openChat(chatId, isGroup, chatData) {
-  activeChatId = chatId; activeChatIsGroup = isGroup;
-  if(chatData) activeChatMembers = chatData.members||[];
-
-  document.querySelectorAll(".chat-item").forEach(i => i.classList.remove("active"));
-  document.querySelectorAll(`.chat-item`).forEach(i => {
-      i.classList.toggle("active", i.dataset.chatId === chatId);
-  });
-
-  // mobile open
-  $("chat-panel").classList.add("open");
+  chatWith = uid; chatWithName = uname;
   $("chat-empty").style.display = "none";
   $("active-chat").style.display = "flex";
+  $("chat-header-name").textContent = uname;
+  $("chat-header-status").textContent = "";
+  $("btn-voice-call").style.display = "";
+  $("btn-video-call").style.display = "";
+  $("chat-panel").classList.add("open");
 
-  const name = isGroup ? (chatData?.name||"Group") : getChatName(activeChatMembers);
-  $("chat-header-name").textContent = name;
-  $("chat-header-status").textContent = isGroup ? `${activeChatMembers.length} members` : "";
-  $("btn-voice-call").style.display = isGroup ? "none" : "";
-  $("btn-video-call").style.display = isGroup ? "none" : "";
-
-  // clear unread
-  updateDoc(doc(db,"chats",chatId), { [`unread_${currentUser.uid}`]: 0 }).catch(()=>{});
-
+  // load messages realtime
   if(msgUnsub) msgUnsub();
-  const msgQ = query(collection(db,"chats",chatId,"messages"), orderBy("createdAt","asc"), limit(100));
-  const area = $("messages-area"); area.innerHTML = "";
+  const roomId = [currentUser.uid, uid].sort().join('_');
+  const msgQ = query(collection(db,"chats",roomId,"messages"), orderBy("createdAt","asc"));
+  const area = $("messages-area");
+  area.innerHTML = "";
   msgUnsub = onSnapshot(msgQ, snap => {
     snap.docChanges().forEach(ch => {
-      if(ch.type === "added") appendMessage(ch.doc.id, ch.doc.data(), chatId);
-      else if(ch.type === "modified") updateMsgReactions(ch.doc.id, ch.doc.data(), chatId);
+      if(ch.type === "added") appendChatMsg(ch.doc.id, ch.doc.data(), roomId);
+      else if(ch.type === "modified") updateMsgReactions(ch.doc.id, ch.doc.data(), roomId);
     });
     area.scrollTop = area.scrollHeight;
   });
@@ -1162,29 +1136,36 @@ function openChat(chatId, isGroup, chatData) {
 
 $("btn-back-chat").addEventListener("click", () => {
   $("chat-panel").classList.remove("open");
-  activeChatId = null;
+  chatWith = null;
 });
 
-function appendMessage(mid, data, chatId) {
+function appendChatMsg(mid, data, roomId) {
   const area = $("messages-area");
   const mine = data.from === currentUser?.uid;
-  const row = el("div",`msg-row ${mine?"me":""}`);
-  row.dataset.msgId = mid;
-  const senderName = data.senderName||allUsers[data.from]?.name||"User";
+  const wrap = el("div", `msg-row ${mine?"me":""}`);
+  wrap.dataset.msgId = mid;
+  
+  const senderName = data.senderName || allUsers[data.from]?.name || "User";
   let content = "";
-  if(data.type === "text") content = `<span>${escapeHtml(data.text)}</span>`;
-  else if(data.type === "image") content = `<img src="${data.url}" alt="" onclick="document.getElementById('lightbox').classList.add('open');document.getElementById('lightbox-img').src='${data.url}'"/>`;
-  else if(data.type === "video") content = `<video src="${data.url}" controls></video>`;
-  else if(data.type === "audio") content = `<audio src="${data.url}" controls></audio>`;
-  else content = `<a class="msg-file-link" href="${data.url}" target="_blank">📎 ${escapeHtml(data.fileName||"File")}</a>`;
+  
+  if(data.type === "text") {
+    content = `<span>${escapeHtml(data.text||"")}</span>`;
+  } else if(data.type === "image") {
+    content = `<img src="${escapeHtml(data.url)}" alt="" style="max-width:220px;border-radius:12px;cursor:pointer" onclick="document.getElementById('lightbox').classList.add('open');document.getElementById('lightbox-img').src='${escapeHtml(data.url)}'"/>`;
+  } else if(data.type === "video") {
+    content = `<video src="${escapeHtml(data.url)}" controls style="max-width:220px;border-radius:12px;display:block"></video>`;
+  } else if(data.type === "audio") {
+    content = `<audio src="${escapeHtml(data.url)}" controls style="max-width:220px;display:block"></audio>`;
+  } else {
+    content = `<a class="msg-file-link" href="${escapeHtml(data.url)}" target="_blank">📎 ${escapeHtml(data.fileName||"File")}</a>`;
+  }
 
-  const reactId = `${chatId}__${mid}`;
+  const reactId = `${roomId}__${mid}`;
   const existingReacts = buildMsgReactionsHtml(data.reactions||{}, reactId);
 
-  row.innerHTML = `
+  wrap.innerHTML = `
     ${!mine ? `<div class="msg-avatar">${avatarLetter(senderName)}</div>` : ""}
     <div class="msg-bubble-wrap">
-      ${!mine && activeChatIsGroup ? `<div class="msg-sender-name">${escapeHtml(senderName)}</div>` : ""}
       <div class="msg-bubble" data-msg-id="${mid}">
         ${content}
         <div class="msg-emoji-picker">${EMOJIS.map(em=>`<span class="react-pick" data-emoji="${em}" data-id="${reactId}" data-type="msg">${em}</span>`).join("")}</div>
@@ -1193,21 +1174,21 @@ function appendMessage(mid, data, chatId) {
       <div class="msg-time">${timeAgo(data.createdAt)}</div>
     </div>`;
 
-  row.querySelector(".msg-bubble").addEventListener("click", e => {
+  wrap.querySelector(".msg-bubble").addEventListener("click", e => {
     if(e.target.tagName === "IMG" || e.target.tagName === "VIDEO" || e.target.tagName === "AUDIO" || e.target.tagName === "A") return;
-    const picker = row.querySelector(".msg-emoji-picker");
+    const picker = wrap.querySelector(".msg-emoji-picker");
     document.querySelectorAll(".msg-emoji-picker").forEach(p => { if(p !== picker) p.style.display = "none"; });
     picker.style.display = picker.style.display === "flex" ? "none" : "flex";
     e.stopPropagation();
   });
-  document.addEventListener("click", () => { row.querySelector(".msg-emoji-picker") && (row.querySelector(".msg-emoji-picker").style.display="none"); }, { once: true });
-  area.appendChild(row);
+  
+  area.appendChild(wrap);
 }
 
-function updateMsgReactions(mid, data, chatId) {
+function updateMsgReactions(mid, data, roomId) {
   const row = document.querySelector(`[data-msg-id="${mid}"]`);
   if(!row) return;
-  const reactId = `${chatId}__${mid}`;
+  const reactId = `${roomId}__${mid}`;
   const reactDiv = row.querySelector(".msg-reactions");
   if(reactDiv) reactDiv.innerHTML = buildMsgReactionsHtml(data.reactions||{}, reactId);
 }
@@ -1225,41 +1206,51 @@ function buildMsgReactionsHtml(reactions, reactId) {
   }).join("");
 }
 
-// Message send
-async function sendMessage(chatId, payload) {
-  try {
-    const members = activeChatMembers;
-    await addDoc(collection(db,"chats",chatId,"messages"), { ...payload, from: currentUser.uid, senderName: currentUser.profile?.name||"User", reactions:{}, createdAt: serverTimestamp() });
-    const lastMsg = payload.type==="text" ? payload.text : `[${payload.type}]`;
-    const unreadUpdate = {};
-    members.forEach(uid => { if(uid !== currentUser.uid) unreadUpdate[`unread_${uid}`] = increment(1); });
-    await updateDoc(doc(db,"chats",chatId), { lastMsg, lastTs: serverTimestamp(), ...unreadUpdate });
-  } catch(err) {
-    console.error("Message send failed:", err);
-    alert("Failed to send message");
-  }
-}
+$("send-btn").addEventListener("click", sendChatMsg);
+$("chat-text").addEventListener("keydown", e => { if(e.key==="Enter"&&!e.shiftKey) { e.preventDefault(); sendChatMsg(); } });
 
-$("send-btn").addEventListener("click", sendText);
-$("chat-text").addEventListener("keydown", e => { if(e.key==="Enter"&&!e.shiftKey) { e.preventDefault(); sendText(); } });
-async function sendText() {
-  if(!activeChatId) return;
-  const text = $("chat-text").value.trim();
-  if(!text || text.length > 2000) return alert(text.length > 2000 ? "Message too long (max 2000 chars)" : "");
-  if(text.length < 1) return;
-  $("chat-text").value = "";
-  await sendMessage(activeChatId, { type:"text", text });
+async function sendChatMsg() {
+  const ta = $("chat-text");
+  const text = ta.value.trim();
+  
+  if(!text || !chatWith) return;
+  ta.value = "";
+  ta.style.height = "";
+
+  const roomId = [currentUser.uid, chatWith].sort().join('_');
+  
+  // ensure room doc
+  await setDoc(doc(db,"chats",roomId), { members: [currentUser.uid, chatWith], isGroup: false }, { merge: true }).catch(()=>{});
+  
+  await addDoc(collection(db,"chats",roomId,"messages"), {
+    text: text,
+    from: currentUser.uid,
+    senderName: currentUser.profile?.name||"User",
+    type: "text",
+    reactions: {},
+    createdAt: serverTimestamp()
+  }).catch(err => console.error("Send failed:", err));
 }
 
 $("chat-attach-btn").addEventListener("click", () => $("chat-file-input").click());
 $("chat-file-input").addEventListener("change", async () => {
   const file = $("chat-file-input").files[0]; 
-  if(!file || !activeChatId) return;
+  if(!file || !chatWith) return;
   $("chat-progress-bar").style.display = "block";
   try {
     const res = await uploadToCloudinary(file, p => { $("chat-progress-fill").style.width = p+"%"; });
     const type = file.type.startsWith("image")?"image": file.type.startsWith("video")?"video":"file";
-    await sendMessage(activeChatId, { type, url: res.secure_url, fileName: file.name });
+    const roomId = [currentUser.uid, chatWith].sort().join('_');
+    await setDoc(doc(db,"chats",roomId), { members: [currentUser.uid, chatWith], isGroup: false }, { merge: true }).catch(()=>{});
+    await addDoc(collection(db,"chats",roomId,"messages"), {
+      type: type,
+      url: res.secure_url,
+      fileName: file.name,
+      from: currentUser.uid,
+      senderName: currentUser.profile?.name||"User",
+      reactions: {},
+      createdAt: serverTimestamp()
+    });
   } catch(e) { 
     console.error("File upload failed:", e);
     alert("Upload failed");
@@ -1281,11 +1272,20 @@ $("record-btn").addEventListener("click", async () => {
         const blob = new Blob(audioChunks, { type:"audio/webm" });
         const file = new File([blob],"voice.webm",{type:"audio/webm"});
         stream.getTracks().forEach(t=>t.stop());
-        if(activeChatId) {
+        if(chatWith) {
           $("chat-progress-bar").style.display = "block";
           try {
             const res = await uploadToCloudinary(file, p=>{ $("chat-progress-fill").style.width=p+"%"; });
-            await sendMessage(activeChatId, { type:"audio", url: res.secure_url });
+            const roomId = [currentUser.uid, chatWith].sort().join('_');
+            await setDoc(doc(db,"chats",roomId), { members: [currentUser.uid, chatWith], isGroup: false }, { merge: true }).catch(()=>{});
+            await addDoc(collection(db,"chats",roomId,"messages"), {
+              type: "audio",
+              url: res.secure_url,
+              from: currentUser.uid,
+              senderName: currentUser.profile?.name||"User",
+              reactions: {},
+              createdAt: serverTimestamp()
+            });
           } catch(e) { 
             console.error("Voice upload failed:", e);
             alert("Failed to send voice message");
@@ -1332,32 +1332,6 @@ $("chat-search").addEventListener("input", () => {
   });
 });
 
-// ── Group chat
-$("btn-new-group").addEventListener("click", async () => {
-  const snap = await getDocs(collection(db,"users"));
-  const list = $("group-members-list"); list.innerHTML = "";
-  snap.forEach(d => {
-    const u = d.data();
-    if(u.uid === currentUser.uid) return;
-    const item = el("div","member-item");
-    item.innerHTML = `<input type="checkbox" value="${u.uid}" id="gm_${u.uid}"/><label for="gm_${u.uid}">${escapeHtml(u.name)}</label>`;
-    list.appendChild(item);
-  });
-  $("group-modal").classList.add("open");
-});
-$("cancel-group").addEventListener("click", () => $("group-modal").classList.remove("open"));
-$("confirm-group").addEventListener("click", async () => {
-  const name = $("group-name-input").value.trim();
-  if(!name) return alert("Enter a group name");
-  const members = [currentUser.uid];
-  document.querySelectorAll("#group-members-list input:checked").forEach(cb => members.push(cb.value));
-  if(members.length < 2) return alert("Select at least 1 member");
-  const ref = await addDoc(collection(db,"chats"), { name, members, isGroup: true, createdAt: serverTimestamp() });
-  $("group-modal").classList.remove("open");
-  $("group-name-input").value = "";
-  openChat(ref.id, true, { members, name, isGroup: true });
-});
-
 // ══════════════════════════════════════════════════════════════════
 //  CALLS (WebRTC)
 // ══════════════════════════════════════════════════════════════════
@@ -1368,10 +1342,9 @@ $("btn-voice-call").addEventListener("click", () => startCall(false));
 $("btn-video-call").addEventListener("click", () => startCall(true));
 
 async function startCall(video) {
-  if(!activeChatId) return;
+  if(!chatWith) return;
   isVideoCall = video;
-  const other = activeChatMembers.find(uid => uid !== currentUser.uid);
-  if(!other) return;
+  if(!chatWith) return;
   localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video }).catch(e => { alert("Media error: "+e.message); return null; });
   if(!localStream) return;
 
@@ -1383,7 +1356,7 @@ async function startCall(video) {
   peerConnection.ontrack = e => e.streams[0].getTracks().forEach(t => remoteStream.addTrack(t));
 
   const callRef = await addDoc(collection(db,"calls"), {
-    callerId: currentUser.uid, calleeId: other, isVideo: video,
+    callerId: currentUser.uid, calleeId: chatWith, isVideo: video,
     status: "ringing", offer: null, answer: null,
     callerCandidates: [], calleeCandidates: []
   });
