@@ -632,7 +632,7 @@ var FB, me=null, myName='', myGrad='';
 var allUsers=[], chatWith=null, chatWithName='', chatIsGroup=false;
 var chatUnsubFn=null, postsUnsub=null;
 var chatFilePending=null, mediaRecorder=null, audioChunks=[];
-var unreadCounts={}, totalUnread=0;
+var unreadCounts={}, totalUnread=0, unreadUnsubs={};
 var selectedMembers=[];
 var feedLoaded=false, newPostCount=0;
 /* WebRTC */
@@ -812,6 +812,7 @@ async function enterApp(){
   g('nav-av').textContent=myName[0].toUpperCase();g('nav-av').style.background=myGrad;
   g('cp-av').textContent=myName[0].toUpperCase();g('cp-av').style.background=myGrad;
   loadAllUsers();
+  loadGroupsAtBoot();
   listenIncomingCalls();
   switchPage('feed');
 }
@@ -836,6 +837,12 @@ function loadAllUsers(){
   FB.onSnapshot(FB.query(FB.collection(FB.db,'users'),FB.orderBy('name','asc')),function(snap){
     allUsers=[];
     snap.forEach(function(d){if(d.id!==me.uid)allUsers.push(Object.assign({id:d.id},d.data()))});
+    // Start unread listeners for every DM room immediately at boot
+    // so badges update even when the user hasn't visited the Chat page yet
+    allUsers.forEach(function(u){
+      var roomId=[me.uid,u.id].sort().join('_');
+      listenUnreadForRoom(roomId);
+    });
     if(g('page-people').style.display!=='none')renderPeople(allUsers);
     if(g('page-chat').style.display!=='none')renderChatList(allUsers);
   });
@@ -853,31 +860,62 @@ function updateFeedBadge(){
   else{badge.classList.remove('on');}
 }
 function listenUnreadForRoom(roomId){
+  // Guard: don't register duplicate listeners
+  if(unreadUnsubs[roomId])return;
+  // Simple query with no compound where clauses — compound queries require
+  // a Firestore composite index that silently fails when missing.
+  // We count unread client-side instead, which is instant.
   var q=FB.query(
     FB.collection(FB.db,'chats/'+roomId+'/messages'),
-    FB.where('from','!=',me.uid),
-    FB.where('read','==',false)
+    FB.orderBy('createdAt','desc'),
+    FB.limit(100)
   );
-  FB.onSnapshot(q,function(snap){
-    unreadCounts[roomId]=snap.size;
+  unreadUnsubs[roomId]=FB.onSnapshot(q,function(snap){
+    // Room currently open → always 0
+    var count=0;
+    if(chatWith!==roomId){
+      snap.forEach(function(d){
+        var m=d.data();
+        if(m.from!==me.uid&&m.read===false)count++;
+      });
+    }
+    unreadCounts[roomId]=count;
     totalUnread=Object.values(unreadCounts).reduce(function(a,b){return a+b},0);
     updateChatBadge();
     var row=document.querySelector('[data-room="'+roomId+'"]');
     if(row){
       var badge=row.querySelector('.cs-unread');
       if(badge){
-        if(snap.size>0){badge.textContent=snap.size;badge.classList.add('on');}
+        if(count>0){badge.textContent=count;badge.classList.add('on');}
         else badge.classList.remove('on');
       }
     }
   });
 }
 async function markRoomRead(roomId){
-  var q=FB.query(FB.collection(FB.db,'chats/'+roomId+'/messages'),FB.where('from','!=',me.uid),FB.where('read','==',false));
-  var snap=await FB.getDocs(q);
-  var batch=[];
-  snap.forEach(function(d){batch.push(FB.updateDoc(FB.doc(FB.db,'chats/'+roomId+'/messages',d.id),{read:true}))});
-  await Promise.all(batch);
+  // Immediately zero the local counter so the badge clears without waiting
+  // for the Firestore round-trip
+  unreadCounts[roomId]=0;
+  totalUnread=Object.values(unreadCounts).reduce(function(a,b){return a+b},0);
+  updateChatBadge();
+  var row=document.querySelector('[data-room="'+roomId+'"]');
+  if(row){var b=row.querySelector('.cs-unread');if(b)b.classList.remove('on');}
+  // Then do the actual Firestore update in the background
+  // Use a simple query without compound index requirements
+  try{
+    var snap=await FB.getDocs(FB.query(
+      FB.collection(FB.db,'chats/'+roomId+'/messages'),
+      FB.orderBy('createdAt','desc'),
+      FB.limit(100)
+    ));
+    var batch=[];
+    snap.forEach(function(d){
+      var m=d.data();
+      if(m.from!==me.uid&&m.read===false)
+        batch.push(FB.updateDoc(FB.doc(FB.db,'chats/'+roomId+'/messages',d.id),{read:true}));
+    });
+    if(batch.length)await Promise.all(batch);
+  }catch(e){/* non-critical */}
 }
 
 /* ════ FEED ══════════════════════════════════════ */
@@ -1085,6 +1123,14 @@ function renderChatList(list){
   loadGroups();
 }
 
+/* Start group unread listeners at boot, before user visits Chat page */
+function loadGroupsAtBoot(){
+  var q=FB.query(FB.collection(FB.db,'groups'),FB.where('members','array-contains',me.uid));
+  FB.onSnapshot(q,function(snap){
+    snap.forEach(function(d){listenUnreadForRoom(d.id);});
+  });
+}
+
 async function loadGroups(){
   var q=FB.query(FB.collection(FB.db,'groups'),FB.where('members','array-contains',me.uid));
   FB.onSnapshot(q,function(snap){
@@ -1172,6 +1218,12 @@ function openChatRoom(roomId,isGroup){
     snap.forEach(function(d){appendChatMsg(Object.assign({id:d.id},d.data()),isGroup)});
     if(wasBottom||area.children.length<=20)area.scrollTop=area.scrollHeight;
   });
+  // Zero badge immediately when room is opened — don't wait for Firestore round-trip
+  unreadCounts[roomId]=0;
+  totalUnread=Object.values(unreadCounts).reduce(function(a,b){return a+b},0);
+  updateChatBadge();
+  var activeRow=document.querySelector('[data-room="'+roomId+'"]');
+  if(activeRow){var ab=activeRow.querySelector('.cs-unread');if(ab)ab.classList.remove('on');}
   markRoomRead(roomId);
   if(!isGroup)FB.setDoc(FB.doc(FB.db,'chats',roomId),{members:[me.uid,chatWith.replace(me.uid,'').replace('_','')]},{merge:true}).catch(function(){});
 }
