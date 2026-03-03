@@ -13,13 +13,12 @@ import { getFirestore, collection, doc, setDoc, getDoc, getDocs, addDoc, query, 
 
 /* ▼▼ PASTE YOUR FIREBASE CONFIG ▼▼ */
 const firebaseConfig = {
-  apiKey: "AIzaSyD3y9wwCpc8VZVZb4F1LeKpGcrju348Epo",
-  authDomain: "chaty-3e854.firebaseapp.com",
-  projectId: "chaty-3e854",
-  storageBucket: "chaty-3e854.firebasestorage.app",
+  apiKey:            "AIzaSyD3y9wwCpc8VZVZb4F1LeKpGcrju348Epo",
+  authDomain:        "chaty-3e854.firebaseapp.com",
+  projectId:         "chaty-3e854",
+  storageBucket:     "chaty-3e854.firebasestorage.app",
   messagingSenderId: "184662030881",
-  appId: "1:184662030881:web:56fc9a890e018272774160",
-  measurementId: "G-2EL97LLY17"
+  appId:             "1:184662030881:web:56fc9a890e018272774160"
 };
 /* ▲▲ PASTE YOUR FIREBASE CONFIG ▲▲ */
 
@@ -27,7 +26,8 @@ const app  = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db   = getFirestore(app);
 window.__FB = { auth, db, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile, collection, doc, setDoc, getDoc, getDocs, addDoc, query, orderBy, onSnapshot, updateDoc, arrayUnion, arrayRemove, serverTimestamp, where, limit, deleteDoc, increment };
-document.dispatchEvent(new Event('fb-ready'));
+// Use a small delay so the IIFE's listener is always registered first
+setTimeout(function(){ document.dispatchEvent(new Event('fb-ready')); }, 0);
 </script>
 
 <style>
@@ -617,7 +617,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 'use strict';
 
 /* ▼▼ CLOUDINARY CONFIG ▼▼ */
-var CLOUDINARY_CLOUD_NAME = 'diev2dlno';
+var CLOUDINARY_CLOUD_NAME   = 'diev2dlno';
 var CLOUDINARY_UPLOAD_PRESET = 'chaty_uploads';
 /* ▲▲ CLOUDINARY CONFIG ▲▲ */
 
@@ -626,7 +626,7 @@ var CLOUDINARY_UPLOAD_PRESET = 'chaty_uploads';
    any post or message in addition to their own.
    Example: var ADMIN_UIDS = ['uid_abc123', 'uid_xyz789'];
    ────────────────────────────────────────────────── */
-var ADMIN_UIDS = [UzX7q42S6ZTmSImkCE3eyDPycZQ2];
+var ADMIN_UIDS = ['UzX7q42S6ZTmSImkCE3eyDPycZQ2'];
 
 var FB, me=null, myName='', myGrad='';
 var allUsers=[], chatWith=null, chatWithName='', chatIsGroup=false;
@@ -764,10 +764,19 @@ function wire(){
 
 /* ── Auth ─────────────────────────────────────── */
 function switchTab(t){
-  g('tab-in').classList.toggle('active',t==='in');g('tab-up').classList.toggle('active',t==='up');
-  g('form-in').style.display=t==='in'?'block':'none';g('form-up').style.display=t==='up'?'block':'none';
-  g('a-err').style.display='none';g('a-ok').style.display='none';
+  g('tab-in').classList.toggle('active',t==='in');
+  g('tab-up').classList.toggle('active',t==='up');
+  g('form-in').style.display=t==='in'?'block':'none';
+  g('form-up').style.display=t==='up'?'block':'none';
+  g('a-err').style.display='none';
+  g('a-ok').style.display='none';
 }
+// Ensure initial state is correct
+document.addEventListener('DOMContentLoaded',function(){
+  var fi=document.getElementById('form-in'),fu=document.getElementById('form-up');
+  if(fi)fi.style.display='block';
+  if(fu)fu.style.display='none';
+});
 async function doLogin(){
   var email=g('in-email').value.trim(),pass=g('in-pass').value;
   if(!email||!pass)return setErr('Fill in all fields.');
