@@ -597,7 +597,7 @@ let isVideoCall = false;
 let mediaRecorder = null;
 let audioChunks = [];
 let isRecording = false;
-let postUploadFile = null;
+let postFileData = null;
 let newPostCount = 0;
 let latestPostTs = null;
 
@@ -760,204 +760,188 @@ function loadFeed() {
   const q = query(collection(db,"posts"), orderBy("createdAt","desc"), limit(50));
   let first = true;
   postsUnsub = onSnapshot(q, snap => {
+    const posts = [];
+    snap.forEach(d => posts.push({ id: d.id, ...d.data() }));
+    renderFeed(posts);
     if(first) {
       first = false;
-      $("posts-container").innerHTML = "";
-      snap.docs.forEach(d => renderPost(d.id, d.data(), true));
-      if(snap.docs.length > 0) latestPostTs = snap.docs[0].data().createdAt;
-    } else {
-      snap.docChanges().forEach(ch => {
-        if(ch.type === "added") {
-          const data = ch.doc.data();
-          if(latestPostTs && data.createdAt && data.createdAt > latestPostTs) {
-            if($("feed-page").classList.contains("active")) {
-              renderPost(ch.doc.id, data, false, true);
-            } else {
-              newPostCount++;
-              updateFeedBadge();
-            }
-            latestPostTs = data.createdAt;
-          }
-        } else if(ch.type === "modified") {
-          const existing = document.querySelector(`[data-post-id="${ch.doc.id}"]`);
-          if(existing) updatePostReactions(existing, ch.doc.data());
-        }
-      });
+      if(posts.length > 0) latestPostTs = posts[0].createdAt;
     }
   });
 }
 
-function renderPost(pid, data, append=true, prepend=false) {
-  const mine = data.authorId === currentUser?.uid;
-  const card = el("div","post-card");
-  card.dataset.postId = pid;
-  const initial = avatarLetter(data.authorName);
-  let mediaHtml = "";
-  
-  // Check if media exists (try both mediaUrl and url) and render accordingly
-  const url = data.mediaUrl || data.url;
-  if(url) {
-    if(data.mediaType === "image") {
-      mediaHtml = `<div class="post-media"><img src="${escapeHtml(url)}" alt="post image" style="max-width:100%;border-radius:var(--radius);cursor:pointer;" onclick="document.getElementById('lightbox').classList.add('open');document.getElementById('lightbox-img').src='${url}'"/></div>`;
-    } else if(data.mediaType === "video") {
-      mediaHtml = `<div class="post-media"><video src="${escapeHtml(url)}" controls style="max-width:100%;border-radius:var(--radius);"></video></div>`;
-    } else {
-      mediaHtml = `<div class="post-media"><a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">📎 ${escapeHtml(data.fileName||"Download file")}</a></div>`;
-    }
+function renderFeed(posts) {
+  const container = $("posts-container");
+  if(!posts.length) {
+    container.innerHTML = '<p style="text-align:center;color:var(--text2);padding:40px;font-size:.88rem">No posts yet. Be the first!</p>';
+    return;
   }
-  
-  const reactHtml = buildReactionsHtml(data.reactions||{}, pid, "post");
-  card.innerHTML = `
+  container.innerHTML = "";
+  posts.forEach(p => {
+    const card = buildPostCard(p);
+    container.appendChild(card);
+  });
+}
+
+function buildPostCard(p) {
+  const div = document.createElement("div");
+  div.className = "post-card";
+  div.dataset.pid = p.id;
+
+  const uname = p.authorName || "User";
+  const reactions = p.reactions || {};
+  const reactionBtns = EMOJIS.map(emoji => {
+    const cnt = reactions[emoji] ? reactions[emoji].length : 0;
+    const reacted = reactions[emoji] && reactions[emoji].includes(currentUser?.uid);
+    return `<button class="reaction-btn ${reacted ? "reacted" : ""}" data-emoji="${emoji}" data-pid="${p.id}" style="display: ${cnt || reacted ? 'flex' : 'none'}">
+      <span>${emoji}</span><span class="count">${cnt || ""}</span>
+    </button>`;
+  }).join("");
+
+  const commentCount = p.commentCount || 0;
+  let mediaHtml = "";
+  if(p.mediaUrl) {
+    const t = p.mediaType || "";
+    if(t.includes("video")) mediaHtml = `<div class="post-media"><video src="${escapeHtml(p.mediaUrl)}" controls preload="metadata"></video></div>`;
+    else if(t.includes("image") || t.includes("gif")) mediaHtml = `<div class="post-media"><img src="${escapeHtml(p.mediaUrl)}" loading="lazy" style="cursor:pointer" data-lb="${escapeHtml(p.mediaUrl)}"></div>`;
+    else mediaHtml = `<div style="padding:8px 16px"><a class="msg-file-link" href="${escapeHtml(p.mediaUrl)}" target="_blank" rel="noopener">📎 Download</a></div>`;
+  }
+
+  div.innerHTML = `
     <div class="post-header">
-      <div style="display:flex;align-items:center;gap:8px;">
-        <div class="post-avatar" style="color:#fff;">${initial}</div>
-        <div>
-          <div style="font-weight:600;">${escapeHtml(data.authorName)}</div>
-          <div style="font-size:0.8rem;color:var(--text2);">${timeAgo(data.createdAt)}</div>
-        </div>
+      <div class="post-avatar">${uname[0].toUpperCase()}</div>
+      <div class="post-meta">
+        <div class="post-author">${escapeHtml(uname)}</div>
+        <div class="post-time">${timeAgo(p.createdAt)}</div>
       </div>
     </div>
-    ${data.text ? `<div class="post-text">${escapeHtml(data.text)}</div>` : ""}
+    ${p.text ? `<div class="post-text">${escapeHtml(p.text)}</div>` : ""}
     ${mediaHtml}
-    <div class="reactions-bar">${reactHtml}</div>
+    <div class="reactions-bar">${reactionBtns}<button class="reaction-btn add-react" data-pid="${p.id}" style="display:flex">+</button></div>
     <div class="post-footer">
-      <button class="post-action" data-comments-toggle="${pid}">💬 Comments</button>
+      <button class="post-action comments-toggle" data-pid="${p.id}">💬 Comments ${commentCount ? `(${commentCount})` : ""}</button>
     </div>
-    <div class="comments-section" id="comments-${pid}"></div>
+    <div class="comments-section" id="comments-${p.id}">
+      <div id="clist-${p.id}"></div>
+      <div style="display:flex;gap:8px;margin-top:8px;">
+        <input class="comment-input" id="cinput-${p.id}" placeholder="Write a comment…">
+        <button class="comment-send" data-pid="${p.id}">Send</button>
+      </div>
+    </div>
   `;
-  const container = $("posts-container");
-  if(prepend) container.insertBefore(card, container.firstChild);
-  else if(append) container.appendChild(card);
-}
 
-function buildReactionsHtml(reactions, id, type) {
-  return EMOJIS.map(emoji => {
-    const users = reactions[emoji]||[];
-    if(users.length === 0) return "";
-    const reacted = users.includes(currentUser?.uid);
-    const names = users.map(u => allUsers[u]?.name||"User").join(", ");
-    return `<div class="reaction-btn ${reacted?"reacted":""}" data-react="${emoji}" data-id="${id}" data-type="${type}">
-      ${emoji} <span class="count">${users.length}</span>
-      <span class="tooltip">${names}</span>
-    </div>`;
-  }).join("") + `<div class="reaction-btn add-react" data-add-react="${id}" data-type="${type}">+ <span class="tooltip">Add reaction</span></div>`;
-}
+  // wire reactions
+  div.querySelectorAll(".reaction-btn:not(.add-react)").forEach(btn => {
+    btn.addEventListener("click", () => toggleReaction(p.id, btn.dataset.emoji));
+  });
+  
+  // wire add reaction
+  div.querySelector(".add-react").addEventListener("click", () => {
+    const picker = document.createElement("div");
+    picker.className = "react-picker";
+    picker.innerHTML = EMOJIS.map(em => `<span class="react-pick" data-emoji="${em}" data-pid="${p.id}">🔲 ${em}</span>`).join("");
+    const parent = div.querySelector(".reactions-bar");
+    parent.appendChild(picker);
+    picker.querySelectorAll(".react-pick").forEach(btn => {
+      btn.addEventListener("click", () => {
+        toggleReaction(p.id, btn.dataset.emoji);
+        picker.remove();
+      });
+    });
+  });
 
-function updatePostReactions(card, data) {
-  const pid = card.dataset.postId;
-  const bar = card.querySelector(".reactions-bar");
-  if(bar) bar.innerHTML = buildReactionsHtml(data.reactions||{}, pid, "post");
-}
-
-// Reaction picker popover (feed)
-document.addEventListener("click", async e => {
-  // close pickers
-  document.querySelectorAll(".popover.open").forEach(p => { if(!e.target.closest("[data-add-react]")) p.classList.remove("open"); });
-
-  // post react button → show picker
-  if(e.target.closest("[data-add-react]")) {
-    const btn = e.target.closest("[data-add-react]");
-    const id = btn.dataset.addReact;
-    const type = btn.dataset.type;
-    let picker = btn.querySelector(".popover");
-    if(!picker) {
-      picker = el("div","popover");
-      picker.style.cssText = "bottom:calc(100% + 4px);left:0;";
-      picker.innerHTML = `<div class="react-picker">${EMOJIS.map(em=>`<span class="react-pick" data-emoji="${em}" data-id="${id}" data-type="${type}">${em}</span>`).join("")}</div>`;
-      btn.style.position = "relative";
-      btn.appendChild(picker);
-    }
-    picker.classList.toggle("open");
-    e.stopPropagation();
-    return;
-  }
-
-  // emoji pick
-  if(e.target.closest(".react-pick")) {
-    const s = e.target.closest(".react-pick");
-    await reactTo(s.dataset.type, s.dataset.id, s.dataset.emoji);
-    s.closest(".popover")?.classList.remove("open");
-    return;
-  }
-
-  // existing reaction toggle
-  if(e.target.closest("[data-react]") && !e.target.closest("[data-add-react]")) {
-    const btn = e.target.closest("[data-react]");
-    await reactTo(btn.dataset.type, btn.dataset.id, btn.dataset.react);
-    return;
-  }
-
-  // comments toggle
-  if(e.target.closest("[data-comments-toggle]")) {
-    const pid = e.target.closest("[data-comments-toggle]").dataset.commentsToggle;
-    const section = $(`comments-${pid}`);
-    if(!section) return;
+  // wire comments toggle
+  div.querySelector(".comments-toggle").addEventListener("click", () => {
+    const section = $(`comments-${p.id}`);
     const visible = section.style.display === "block";
     section.style.display = visible ? "none" : "block";
-    if(!visible && section.childElementCount === 0) loadComments(pid, section);
-  }
-});
+    if(!visible && $(`clist-${p.id}`).children.length === 0) loadComments(p.id);
+  });
 
-async function reactTo(type, id, emoji) {
+  // wire comment send
+  const sendBtn = div.querySelector(".comment-send");
+  const inputEl = div.querySelector(`#cinput-${p.id}`);
+  sendBtn.addEventListener("click", () => postComment(p.id));
+  inputEl.addEventListener("keydown", e => {
+    if(e.key === "Enter") postComment(p.id);
+  });
+
+  // wire lightbox
+  div.querySelectorAll("[data-lb]").forEach(img => {
+    img.addEventListener("click", () => {
+      $("lightbox").classList.add("open");
+      $("lightbox-img").src = img.dataset.lb;
+    });
+  });
+
+  return div;
+}
+
+async function toggleReaction(pid, emoji) {
   try {
-    if(type === "post") {
-      const ref = doc(db,"posts",id);
-      const snap = await getDoc(ref);
-      if(!snap.exists()) return;
-      const reactions = snap.data()?.reactions || {};
-      const cur = reactions[emoji] || [];
-      const update = cur.includes(currentUser.uid)
-        ? { [`reactions.${emoji}`]: arrayRemove(currentUser.uid) }
-        : { [`reactions.${emoji}`]: arrayUnion(currentUser.uid) };
-      await updateDoc(ref, update);
-    } else if(type === "msg") {
-      const parts = id.split("__");
-      const chatId = parts[0], msgId = parts[1];
-      const ref = doc(db,"chats",chatId,"messages",msgId);
-      const snap = await getDoc(ref);
-      if(!snap.exists()) return;
-      const reactions = snap.data()?.reactions || {};
-      const cur = reactions[emoji] || [];
-      const update = cur.includes(currentUser.uid)
-        ? { [`reactions.${emoji}`]: arrayRemove(currentUser.uid) }
-        : { [`reactions.${emoji}`]: arrayUnion(currentUser.uid) };
-      await updateDoc(ref, update);
+    const pref = doc(db, "posts", pid);
+    const snap = await getDoc(pref);
+    if(!snap.exists()) return;
+    const reactions = snap.data().reactions || {};
+    const arr = reactions[emoji] || [];
+    const update = {};
+    if(arr.includes(currentUser.uid)) {
+      update[`reactions.${emoji}`] = arrayRemove(currentUser.uid);
+    } else {
+      update[`reactions.${emoji}`] = arrayUnion(currentUser.uid);
     }
+    await updateDoc(pref, update);
   } catch(err) {
-    console.error("Reaction failed:", err);
+    console.error("Reaction error:", err);
   }
 }
 
-function loadComments(pid, section) {
-  const q = query(collection(db,"posts",pid,"comments"), orderBy("createdAt","asc"));
-  onSnapshot(q, snap => {
-    section.innerHTML = "";
-    snap.docs.forEach(d => {
+function toggleComments(pid) {
+  const el = $(`comments-${pid}`);
+  const visible = el.style.display === "block";
+  el.style.display = visible ? "none" : "block";
+  if(!visible && $(`clist-${pid}`).children.length === 0) loadComments(pid);
+}
+
+async function loadComments(pid) {
+  const el = $(`clist-${pid}`);
+  el.innerHTML = '<div class="spinner" style="margin:10px auto;width:14px;height:14px"></div>';
+  try {
+    const q = query(collection(db, `posts/${pid}/comments`), orderBy("createdAt", "asc"));
+    const snap = await getDocs(q);
+    el.innerHTML = "";
+    snap.forEach(d => {
       const c = d.data();
-      const item = el("div","comment-item");
+      const item = document.createElement("div");
+      item.className = "comment-item";
       item.innerHTML = `
-        <div class="post-avatar" style="width:28px;height:28px;font-size:0.75rem">${avatarLetter(c.authorName)}</div>
+        <div class="post-avatar" style="width:28px;height:28px;font-size:0.75rem">${(c.authorName || "U")[0].toUpperCase()}</div>
         <div class="comment-body">
-          <div class="comment-author">${c.authorName}</div>
+          <div class="comment-author">${escapeHtml(c.authorName || "User")}</div>
           <div class="comment-text">${escapeHtml(c.text)}</div>
-        </div>`;
-      section.appendChild(item);
+        </div>
+      `;
+      el.appendChild(item);
     });
-    const row = el("div","comment-input-row");
-    row.innerHTML = `<input class="comment-input" placeholder="Add a comment…"/><button class="comment-send">Send</button>`;
-    row.querySelector(".comment-send").addEventListener("click", async () => {
-      const input = row.querySelector(".comment-input");
-      const text = input.value.trim();
-      if(!text) return;
-      await addDoc(collection(db,"posts",pid,"comments"), {
-        text, authorId: currentUser.uid, authorName: currentUser.profile?.name||"User", createdAt: serverTimestamp()
-      });
-      await updateDoc(doc(db,"posts",pid), { commentCount: increment(1) });
-      input.value = "";
+  } catch(err) {
+    console.error("Load comments error:", err);
+  }
+}
+
+async function postComment(pid) {
+  const input = $(`cinput-${pid}`);
+  const text = input.value.trim();
+  if(!text) return;
+  input.value = "";
+  try {
+    await addDoc(collection(db, `posts/${pid}/comments`), {
+      text, authorId: currentUser.uid, authorName: currentUser.profile?.name || "User", createdAt: serverTimestamp()
     });
-    row.querySelector(".comment-input").addEventListener("keydown", e => { if(e.key==="Enter") row.querySelector(".comment-send").click(); });
-    section.appendChild(row);
-  });
+    await updateDoc(doc(db, "posts", pid), { commentCount: increment(1) });
+    loadComments(pid);
+  } catch(err) {
+    console.error("Comment error:", err);
+  }
 }
 
 // Composer post upload
@@ -966,54 +950,88 @@ function loadComments(pid, section) {
   const inputId = `${type === "photo" ? "photo" : type === "video" ? "video" : "file"}-input`;
   $(btnId).addEventListener("click", () => $(inputId).click());
   $(inputId).addEventListener("change", () => {
-    const file = $(inputId).files[0]; if(!file) return;
-    postUploadFile = file;
-    const preview = $("post-upload-preview");
-    preview.innerHTML = "";
-    const wrap = el("div","upload-preview");
-    if(file.type.startsWith("image")) {
-      const img = el("img"); img.src = URL.createObjectURL(file); wrap.appendChild(img);
-    } else if(file.type.startsWith("video")) {
-      const vid = el("video"); vid.src = URL.createObjectURL(file); vid.controls = true; wrap.appendChild(vid);
-    } else {
-      wrap.innerHTML = `📎 ${escapeHtml(file.name)}`;
-    }
-    const rm = el("button","remove-btn","✕");
-    rm.addEventListener("click", () => { postUploadFile = null; preview.innerHTML = ""; });
-    wrap.appendChild(rm);
-    preview.appendChild(wrap);
+    onPostFileSelect($(inputId).files[0]);
   });
 });
 
-$("btn-post").addEventListener("click", async () => {
+function onPostFileSelect(file) {
+  if(!file) return;
+  postFileData = file;
+  const preview = $("post-upload-preview");
+  preview.innerHTML = "";
+  const wrap = document.createElement("div");
+  wrap.className = "upload-preview";
+  if(file.type.startsWith("image")) {
+    const img = document.createElement("img");
+    img.src = URL.createObjectURL(file);
+    wrap.appendChild(img);
+  } else if(file.type.startsWith("video")) {
+    const vid = document.createElement("video");
+    vid.src = URL.createObjectURL(file);
+    vid.controls = true;
+    wrap.appendChild(vid);
+  } else {
+    wrap.innerHTML = `📎 ${escapeHtml(file.name)}`;
+  }
+  const rm = document.createElement("button");
+  rm.className = "remove-btn";
+  rm.textContent = "✕";
+  rm.addEventListener("click", clearPostFile);
+  wrap.appendChild(rm);
+  preview.appendChild(wrap);
+}
+
+function clearPostFile() {
+  postFileData = null;
+  $("post-upload-preview").innerHTML = "";
+  $("photo-input").value = "";
+  $("video-input").value = "";
+  $("file-input").value = "";
+}
+
+$("btn-post").addEventListener("click", submitPost);
+
+async function submitPost() {
   const text = $("post-text").value.trim();
-  if(!text && !postUploadFile) return alert("Write something or upload media");
+  if(!text && !postFileData) return alert("Write something or upload media");
   if(text.length > 3000) return alert("Post too long (max 3000 chars)");
   $("btn-post").disabled = true;
+
   let mediaUrl = null, mediaType = null, fileName = null;
   try {
-    if(postUploadFile) {
+    if(postFileData) {
       $("post-progress-bar").style.display = "block";
-      const res = await uploadToCloudinary(postUploadFile, p => {
-        $("post-progress-fill").style.width = p+"%";
+      const res = await uploadToCloudinary(postFileData, p => {
+        $("post-progress-fill").style.width = p + "%";
       });
       mediaUrl = res.secure_url;
-      mediaType = postUploadFile.type.startsWith("image") ? "image" : postUploadFile.type.startsWith("video") ? "video" : "file";
-      fileName = postUploadFile.name;
+      mediaType = postFileData.type;
+      fileName = postFileData.name;
       $("post-progress-bar").style.display = "none";
+      clearPostFile();
     }
-    await addDoc(collection(db,"posts"), {
-      text, authorId: currentUser.uid, authorName: currentUser.profile?.name||"User",
-      mediaUrl, mediaType, fileName, reactions: {}, commentCount: 0, createdAt: serverTimestamp()
+
+    await addDoc(collection(db, "posts"), {
+      text: text || "",
+      authorId: currentUser.uid,
+      authorName: currentUser.profile?.name || "User",
+      mediaUrl: mediaUrl || null,
+      mediaType: mediaType || null,
+      fileName: fileName || null,
+      reactions: {},
+      commentCount: 0,
+      createdAt: serverTimestamp()
     });
-    $("post-text").value = ""; postUploadFile = null; $("post-upload-preview").innerHTML = "";
+
+    $("post-text").value = "";
+    clearPostFile();
   } catch(err) {
     console.error("Post creation failed:", err);
     alert("Failed to create post");
   }
   $("post-progress-fill").style.width = "0";
   $("btn-post").disabled = false;
-});
+}
 
 // Lightbox close
 $("lightbox").addEventListener("click", () => $("lightbox").classList.remove("open"));
