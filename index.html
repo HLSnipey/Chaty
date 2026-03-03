@@ -1244,6 +1244,7 @@ var feedLoaded=false, newPostCount=0;
 /* WebRTC */
 var pc=null, localStream=null, callRoomId=null, callIsVideo=false, isCaller=false, callUnsub=null;
 var currentPeerId=null, currentPeerName='';
+var currentPeerId=null, currentPeerName='';
 var isMuted=false, isCamOff=false;
 
 var GRADS=[
@@ -1889,6 +1890,7 @@ function openDM(uid,uname){
   else{av.style.background=grad(uid);av.style.backgroundImage='';av.textContent=uname[0].toUpperCase();}
   g('btn-voice-call').dataset.peer=uid;g('btn-video-call').dataset.peer=uid;
   g('call-overlay').dataset.peer=uid;g('call-overlay').dataset.pname=uname;
+  currentPeerId=uid;currentPeerName=uname;
   currentPeerId=uid; currentPeerName=uname;
   openChatRoom(roomId,false);
 }
@@ -2421,24 +2423,34 @@ function renderNotifPanel(){
     return;
   }
   var icons={reaction:'❤️',comment:'💬',message:'💬',story:'✨',mention:'@',default:'🔔'};
-  list.innerHTML=notifList.map(function(n){
-    var icon=icons[n.type]||icons.default;
-    return '<div class="notif-item'+(n.read?'':' unread')+'" data-nid="'+esc(n.id)+'" data-type="'+esc(n.type||'')+'">'
+  var html='';
+  notifList.forEach(function(n){
+    var icon=icons[n.type]||icons['default'];
+    html+='<div class="notif-item'+(n.read?'':' unread')+'"'
+      +' data-nid="'+esc(n.id)+'"'
+      +' data-type="'+esc(n.type||'')+'"'
+      +' data-from-uid="'+esc(n.fromUid||'')+'"'
+      +' data-from-name="'+esc(n.fromName||'')+'">'
       +'<div class="notif-item-icon '+(n.type||'default')+'">'+icon+'</div>'
       +'<div class="notif-item-body">'
       +'<div class="notif-item-text"><strong>'+esc(n.fromName||'Someone')+'</strong> '+esc(n.body||'')+'</div>'
       +'<div class="notif-item-time">'+timeAgo(n.createdAt)+'</div>'
       +'</div></div>';
-  }).join('');
-  // Click to mark read + navigate
+  });
+  list.innerHTML=html;
   list.querySelectorAll('.notif-item').forEach(function(row){
     row.addEventListener('click',function(){
-      var nid=this.dataset.nid;
-      markNotifRead(nid);
-      var type=this.dataset.type;
-      if(type==='message'||type==='reaction'){switchPage('chat')}
-      else{switchPage('feed')}
+      markNotifRead(this.dataset.nid);
       g('notif-panel').classList.remove('on');
+      var type=this.dataset.type;
+      var fromUid=this.dataset.fromUid;
+      var fromName=this.dataset.fromName;
+      if(type==='message' && fromUid){
+        switchPage('chat');
+        setTimeout(function(){openDM(fromUid, fromName||'User');}, 80);
+      } else {
+        switchPage('feed');
+      }
     });
   });
 }
@@ -2549,21 +2561,15 @@ async function startCall(isVideo){
   pc.ontrack=function(e){g('call-remote-video').srcObject=e.streams[0];if(isVideo)g('call-video-wrap').classList.add('on')};
   var offer=await pc.createOffer();await pc.setLocalDescription(offer);
   await FB.setDoc(FB.doc(FB.db,'calls',callRoomId),{offer:{type:offer.type,sdp:offer.sdp},callerId:me.uid,callerName:myName,calleeId:peerId,isVideo:isVideo,status:'ringing',callerCandidates:[],calleeCandidates:[]});
-  var seenCalleeCandidates={};
+  var seenCallee={};
   callUnsub=FB.onSnapshot(FB.doc(FB.db,'calls',callRoomId),async function(snap){
     var data=snap.data();if(!data)return;
     if(data.status==='answered'&&data.answer&&pc&&pc.signalingState==='have-local-offer'){
       await pc.setRemoteDescription(new RTCSessionDescription(data.answer));
-      g('call-status').textContent='Connected ✓';
+      g('call-status').textContent='Connected';
     }
     if(data.status==='ended'){hangup();return;}
-    // Apply late callee ICE candidates
-    (data.calleeCandidates||[]).forEach(function(c){
-      if(!seenCalleeCandidates[c]){
-        seenCalleeCandidates[c]=true;
-        try{pc&&pc.addIceCandidate(new RTCIceCandidate(JSON.parse(c)))}catch(e){}
-      }
-    });
+    (data.calleeCandidates||[]).forEach(function(c){if(!seenCallee[c]){seenCallee[c]=true;try{pc&&pc.addIceCandidate(new RTCIceCandidate(JSON.parse(c)))}catch(e){}}}); 
   });
 }
 
