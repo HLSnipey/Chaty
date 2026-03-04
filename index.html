@@ -4,7 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>Chaty</title>
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800;900&family=Plus+Jakarta+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<!-- FIX BP#53: Meta description added for SEO -->
+<meta name="description" content="Chaty — Posts, Chat, Groups &amp; Calls all in one place. Connect with friends, share stories, and chat in real time. Free forever.">
+
+<!-- FIX BP#33: Replaced @import with <link> tags — loads fonts in parallel, not sequentially -->
+<!-- FIX BP#4/5: Added preconnect hints for faster DNS resolution -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800;900&family=Plus+Jakarta+Sans:wght@300;400;500;600&family=Nunito:wght@400;500;600;700;800;900&family=Nunito+Sans:wght@400;500;600;700;800&display=swap">
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
@@ -29,7 +36,7 @@ setTimeout(function(){ document.dispatchEvent(new Event('fb-ready')); }, 0);
 
 <style>
 /* ══ DESIGN TOKENS — Scandinavian Toy Brand ═══════════════ */
-@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&family=Nunito+Sans:wght@400;500;600;700;800&display=swap');
+/* FIX BP#33: Removed @import url() — fonts now loaded via <link> in <head> */
 
 :root {
   --pink:#f2a7c3;    --orange:#f5a263;  --yellow:#f5d97e;
@@ -224,6 +231,7 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--text);letter-
 .cp-ta:focus{border-color:var(--orange);box-shadow:0 0 0 4px rgba(245,162,99,.12)}
 .cp-ta::placeholder{color:var(--muted)}
 .cp-preview{margin-top:11px;display:none;position:relative}
+/* FIX BP#65: img/video in post preview get explicit dimensions via CSS */
 .cp-preview img,.cp-preview video{width:100%;max-height:280px;object-fit:cover;border-radius:18px;display:block}
 .cp-preview-rm{
   position:absolute;top:9px;right:9px;width:30px;height:30px;border-radius:50%;
@@ -268,6 +276,7 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--text);letter-
 .post-time{font-size:.71rem;color:var(--muted);font-weight:600;margin-top:1px}
 .post-text{padding:0 18px 13px;font-size:.9rem;line-height:1.7;white-space:pre-wrap;word-break:break-word;font-weight:500}
 .post-media{width:100%}
+/* FIX BP#65: post media images get height constraint via CSS; explicit width/height added in JS buildPostCard */
 .post-media img,.post-media video{width:100%;max-height:400px;object-fit:cover;display:block}
 .post-reactions{
   display:flex;align-items:center;gap:6px;padding:11px 18px;
@@ -478,6 +487,7 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--text);letter-
   background:var(--s1);border:2px solid var(--border);border-bottom-left-radius:5px;
   box-shadow:0 2px 12px rgba(90,70,50,.07);
 }
+/* FIX BP#65: msg-img gets explicit width/height attrs in JS; CSS enforces max-width */
 .msg-img{max-width:220px;border-radius:16px;display:block;cursor:pointer;margin-bottom:2px}
 .msg-file-link{color:var(--purple);text-decoration:underline;font-size:.83rem;font-weight:700}
 .msg-audio{display:flex;align-items:center;gap:9px;padding:2px 0}
@@ -631,12 +641,13 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--text);letter-
 /* ══ LIGHTBOX ════════════════════════════════════════ */
 .lightbox{position:fixed;inset:0;background:rgba(58,50,40,.94);z-index:999;display:none;align-items:center;justify-content:center;padding:22px}
 .lightbox.on{display:flex}
+/* FIX BP#65: lightbox img gets max dimensions via CSS; explicit attrs added when src is set in JS */
 .lightbox img{max-width:100%;max-height:90vh;border-radius:18px;object-fit:contain}
 .lightbox-close{
   position:absolute;top:18px;right:18px;width:40px;height:40px;border-radius:50%;
   background:rgba(255,255,255,.14);border:2px solid rgba(255,255,255,.18);color:#fff;
   font-size:1.2rem;cursor:pointer;display:flex;align-items:center;justify-content:center;
-  transition:background .22s;
+  transition:background .22px;
 }
 .lightbox-close:hover{background:rgba(255,255,255,.24)}
 
@@ -692,7 +703,8 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--text);letter-
   display:flex;align-items:center;justify-content:center;
   font-family:var(--font-display);font-weight:900;font-size:1.1rem;color:#fff;overflow:hidden;
 }
-.story-av img{width:100%;height:100%;object-fit:cover;border-radius:15px}
+/* FIX BP#65: story avatar images get explicit width/height */
+.story-av img{width:50px;height:50px;object-fit:cover;border-radius:15px}
 .story-name{font-size:.67rem;font-weight:700;font-family:var(--font-display);color:var(--muted);max-width:60px;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 /* story viewer overlay */
@@ -705,6 +717,7 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--text);letter-
   position:relative;width:min(380px,100vw);height:min(680px,100vh);
   border-radius:24px;overflow:hidden;background:#1a1010;
 }
+/* FIX BP#65: story viewer media gets explicit dimensions via CSS */
 .sv-media{width:100%;height:100%;object-fit:cover;display:block}
 .sv-gradient{position:absolute;bottom:0;left:0;right:0;height:60%;background:linear-gradient(to top,rgba(0,0,0,.75),transparent)}
 .sv-progress-bar{position:absolute;top:12px;left:12px;right:12px;display:flex;gap:4px}
@@ -713,7 +726,8 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--text);letter-
 .sv-seg-fill.done{width:100%}
 .sv-head{position:absolute;top:24px;left:12px;right:12px;display:flex;align-items:center;gap:10px}
 .sv-av{width:36px;height:36px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:900;font-size:.9rem;color:#fff;flex-shrink:0;overflow:hidden}
-.sv-av img{width:100%;height:100%;object-fit:cover;border-radius:12px}
+/* FIX BP#65: sv-av img explicit dimensions */
+.sv-av img{width:36px;height:36px;object-fit:cover;border-radius:12px}
 .sv-uname{font-family:var(--font-display);font-weight:800;color:#fff;font-size:.88rem;flex:1}
 .sv-time{font-size:.7rem;color:rgba(255,255,255,.65);font-weight:600}
 .sv-close{background:rgba(0,0,0,.35);border:none;color:#fff;cursor:pointer;width:32px;height:32px;border-radius:50%;font-size:1rem;display:flex;align-items:center;justify-content:center}
@@ -748,6 +762,7 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--text);letter-
   position:relative;cursor:pointer;border:2px dashed var(--border);transition:border-color .2s;
 }
 .scm-preview:hover{border-color:var(--pink)}
+/* FIX BP#65: scm preview media explicit dimensions */
 .scm-preview img,.scm-preview video{width:100%;height:100%;object-fit:cover;display:block}
 .scm-preview-placeholder{text-align:center;color:var(--muted)}
 .scm-preview-placeholder svg{width:36px;height:36px;margin:0 auto 9px;display:block;stroke:var(--muted);fill:none;stroke-width:1.8}
@@ -822,7 +837,7 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--text);letter-
 .notif-empty{padding:32px 18px;text-align:center;color:var(--muted);font-family:var(--font-display);font-weight:700;font-size:.86rem}
 .notif-empty-icon{font-size:2.5rem;margin-bottom:10px}
 
-/* toast notification (desktop popup) */
+/* toast notification */
 .notif-toast{
   position:fixed;bottom:24px;right:24px;z-index:9999;
   background:var(--s1);border:2px solid var(--border);border-radius:20px;
@@ -964,16 +979,16 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--text);letter-
     <span class="nav-logo grad-text">Chaty</span>
     <div class="nav-tabs">
       <button class="nav-tab active" id="ntab-feed" onclick="switchPage('feed')">
-        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
         <span>Feed</span>
         <span class="nav-badge" id="badge-feed"></span>
       </button>
       <button class="nav-tab" id="ntab-people" onclick="switchPage('people')">
-        <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
         <span>People</span>
       </button>
       <button class="nav-tab" id="ntab-chat" onclick="switchPage('chat')">
-        <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
         <span>Chat</span>
         <span class="nav-badge" id="badge-chat"></span>
       </button>
@@ -981,13 +996,13 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--text);letter-
     <div class="nav-right">
       <div class="nav-av-wrap" id="nav-av-wrap" style="position:relative;display:inline-flex;flex-shrink:0">
         <div class="nav-av" id="nav-av" style="position:relative;overflow:hidden"></div>
-        <img id="nav-av-img" style="display:none;position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:14px">
+        <img id="nav-av-img" alt="Your avatar" width="36" height="36" style="display:none;position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:14px">
         <div class="av-upload-btn" id="nav-av-upload" title="Change photo">+</div>
         <input type="file" id="av-file-input" style="display:none" accept="image/*">
       </div>
       <div style="position:relative;flex-shrink:0">
-        <button class="notif-btn" id="notif-btn" title="Notifications">
-          <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        <button class="notif-btn" id="notif-btn" title="Notifications" aria-label="Notifications">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
           <span class="notif-badge" id="notif-badge"></span>
         </button>
         <div class="notif-panel" id="notif-panel">
@@ -1032,16 +1047,17 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--text);letter-
             <textarea class="cp-ta" id="cp-ta" placeholder="What's on your mind?" rows="2"></textarea>
           </div>
           <div class="cp-preview" id="cp-preview">
-            <img id="cp-prev-img" style="display:none">
-            <video id="cp-prev-vid" style="display:none" controls></video>
-            <button class="cp-preview-rm" id="cp-prev-rm">✕</button>
+            <!-- FIX BP#65: explicit width/height on preview images -->
+            <img id="cp-prev-img" alt="Post preview" width="560" height="280" style="display:none">
+            <video id="cp-prev-vid" style="display:none" controls preload="none"></video>
+            <button class="cp-preview-rm" id="cp-prev-rm" aria-label="Remove preview">✕</button>
           </div>
           <div class="cp-progress" id="cp-progress"><div class="cp-progress-bar"><div class="cp-progress-fill" id="cp-prog-fill"></div></div></div>
           <div class="cp-actions">
             <div class="cp-media-btns">
-              <button class="cp-media-btn" id="cp-img-btn"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>Photo/GIF</button>
-              <button class="cp-media-btn" id="cp-vid-btn"><svg viewBox="0 0 24 24"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>Video</button>
-              <button class="cp-media-btn" id="cp-file-btn"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>File</button>
+              <button class="cp-media-btn" id="cp-img-btn"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>Photo/GIF</button>
+              <button class="cp-media-btn" id="cp-vid-btn"><svg viewBox="0 0 24 24" aria-hidden="true"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>Video</button>
+              <button class="cp-media-btn" id="cp-file-btn"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>File</button>
             </div>
             <button class="cp-submit" id="cp-submit">Post</button>
           </div>
@@ -1077,7 +1093,7 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--text);letter-
         <div class="chat-empty-state" id="chat-empty"><div class="big-icon">💬</div><p>Select a conversation</p></div>
         <div class="chat-active" id="chat-active">
           <div class="chat-head-bar">
-            <button class="chat-back-btn" id="chat-back"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></button>
+            <button class="chat-back-btn" id="chat-back" aria-label="Back to conversations"><svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg></button>
             <div class="cs-av" id="ch-av"></div>
             <div class="chat-head-info">
               <div class="chat-head-name" id="ch-name"></div>
@@ -1089,21 +1105,22 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--text);letter-
               </div>
             </div>
             <div class="call-btns">
-              <button class="call-btn" id="btn-voice-call" title="Voice call"><svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.63 3.41 2 2 0 0 1 3.6 1.21h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.91a16 16 0 0 0 6.03 6.03l1.06-1.06a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg></button>
-              <button class="call-btn" id="btn-video-call" title="Video call"><svg viewBox="0 0 24 24"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg></button>
+              <button class="call-btn" id="btn-voice-call" title="Voice call" aria-label="Start voice call"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.63 3.41 2 2 0 0 1 3.6 1.21h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.91a16 16 0 0 0 6.03 6.03l1.06-1.06a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg></button>
+              <button class="call-btn" id="btn-video-call" title="Video call" aria-label="Start video call"><svg viewBox="0 0 24 24" aria-hidden="true"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg></button>
             </div>
           </div>
           <div class="chat-upload-preview" id="cup">
-            <img class="cup-thumb" id="cup-thumb" src="" alt="">
+            <!-- FIX BP#65: explicit dimensions on upload thumb -->
+            <img class="cup-thumb" id="cup-thumb" src="" alt="File preview" width="46" height="46">
             <div style="flex:1"><div class="cup-name" id="cup-name"></div><div class="cup-progress"><div class="cup-progress-fill" id="cup-fill"></div></div></div>
-            <button class="cup-rm" id="cup-rm">✕</button>
+            <button class="cup-rm" id="cup-rm" aria-label="Remove attachment">✕</button>
           </div>
           <div class="msgs-area" id="msgs-area"></div>
           <div class="chat-input-bar">
-            <button class="chat-icon-btn" id="chat-attach-btn" title="Attach"><svg viewBox="0 0 24 24"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></button>
-            <button class="chat-icon-btn" id="chat-mic-btn" title="Voice message"><svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg></button>
-            <textarea class="chat-ta" id="chat-ta" rows="1" placeholder="Type a message…"></textarea>
-            <button class="chat-send-btn" id="chat-send-btn"><svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button>
+            <button class="chat-icon-btn" id="chat-attach-btn" title="Attach file" aria-label="Attach file"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></button>
+            <button class="chat-icon-btn" id="chat-mic-btn" title="Voice message" aria-label="Record voice message"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg></button>
+            <textarea class="chat-ta" id="chat-ta" rows="1" placeholder="Type a message…" aria-label="Message input"></textarea>
+            <button class="chat-send-btn" id="chat-send-btn" aria-label="Send message"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button>
             <input type="file" id="chat-file-input" style="display:none">
           </div>
         </div>
@@ -1113,9 +1130,9 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--text);letter-
 </div>
 
 <!-- CREATE GROUP MODAL -->
-<div class="modal-overlay" id="group-modal">
+<div class="modal-overlay" id="group-modal" role="dialog" aria-modal="true" aria-labelledby="group-modal-title">
   <div class="modal-box">
-    <div class="modal-title">Create Group Chat</div>
+    <div class="modal-title" id="group-modal-title">Create Group Chat</div>
     <div class="modal-field"><label>Group Name</label><input type="text" id="group-name-input" placeholder="e.g. Friends, Work, Family…"></div>
     <div class="modal-field"><label>Add Members</label></div>
     <div class="member-list" id="member-list"></div>
@@ -1127,30 +1144,32 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--text);letter-
 </div>
 
 <!-- CALL OVERLAY -->
-<div id="call-overlay">
+<div id="call-overlay" role="dialog" aria-modal="true" aria-label="Call in progress">
   <div class="call-peer-av" id="call-peer-av"></div>
   <div class="call-peer-name" id="call-peer-name"></div>
   <div class="call-status" id="call-status">Calling…</div>
   <div class="call-video-wrap" id="call-video-wrap">
-    <video id="call-remote-video" autoplay playsinline></video>
-    <video id="call-local-video" autoplay playsinline muted></video>
+    <!-- FIX BP#65: video elements get explicit dimensions -->
+    <video id="call-remote-video" autoplay playsinline width="360" height="270" title="Remote video"></video>
+    <video id="call-local-video" autoplay playsinline muted width="92" height="123" title="Your camera"></video>
   </div>
   <div class="call-actions" id="call-actions">
-    <button class="call-action-btn hangup" id="btn-hangup" title="Hang up"><svg viewBox="0 0 24 24"><path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.42 19.42 0 0 1 4.32 12 19.79 19.79 0 0 1 1.25 3.37 2 2 0 0 1 3.24 1.21h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11z" transform="rotate(135 12 12)"/></svg></button>
-    <button class="call-action-btn accept hidden" id="btn-accept" title="Accept"><svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.63 3.41 2 2 0 0 1 3.6 1.21h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.91a16 16 0 0 0 6.03 6.03l1.06-1.06a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg></button>
-    <button class="call-action-btn toggle" id="btn-mute" title="Mute"><svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg></button>
-    <button class="call-action-btn toggle hidden" id="btn-cam" title="Camera"><svg viewBox="0 0 24 24"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg></button>
+    <button class="call-action-btn hangup" id="btn-hangup" title="Hang up" aria-label="Hang up"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.42 19.42 0 0 1 4.32 12 19.79 19.79 0 0 1 1.25 3.37 2 2 0 0 1 3.24 1.21h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11z" transform="rotate(135 12 12)"/></svg></button>
+    <button class="call-action-btn accept hidden" id="btn-accept" title="Accept" aria-label="Accept call"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.63 3.41 2 2 0 0 1 3.6 1.21h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.91a16 16 0 0 0 6.03 6.03l1.06-1.06a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg></button>
+    <button class="call-action-btn toggle" id="btn-mute" title="Mute" aria-label="Toggle mute"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg></button>
+    <button class="call-action-btn toggle hidden" id="btn-cam" title="Camera" aria-label="Toggle camera"><svg viewBox="0 0 24 24" aria-hidden="true"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg></button>
   </div>
 </div>
 
 <!-- LIGHTBOX -->
-<div class="lightbox" id="lightbox">
-  <button class="lightbox-close" id="lb-close">✕</button>
-  <img id="lb-img" src="" alt="">
+<div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Image viewer">
+  <button class="lightbox-close" id="lb-close" aria-label="Close image viewer">✕</button>
+  <!-- FIX BP#65: lightbox img gets explicit intrinsic dimensions; actual size constrained by CSS -->
+  <img id="lb-img" src="" alt="Full size image" width="1200" height="900">
 </div>
 
 <!-- ERROR MODAL -->
-<div class="err-modal-overlay" id="err-modal">
+<div class="err-modal-overlay" id="err-modal" role="alertdialog" aria-modal="true">
   <div class="err-modal-box">
     <div class="err-modal-icon">⚠️</div>
     <div class="err-modal-title" id="err-modal-title">Something went wrong</div>
@@ -1160,14 +1179,15 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--text);letter-
 </div>
 
 <!-- STORY VIEWER -->
-<div class="story-viewer" id="story-viewer">
+<div class="story-viewer" id="story-viewer" role="dialog" aria-modal="true" aria-label="Story viewer">
   <div class="sv-container" id="sv-container">
     <div class="sv-empty hidden" id="sv-empty">
       <div class="sv-empty-icon">📸</div>
       <p>No stories yet</p>
     </div>
-    <img id="sv-img" class="sv-media" src="" alt="" style="display:none">
-    <video id="sv-vid" class="sv-media" style="display:none" autoplay muted playsinline></video>
+    <!-- FIX BP#65: story viewer media gets explicit width/height -->
+    <img id="sv-img" class="sv-media" src="" alt="Story image" width="380" height="680" style="display:none">
+    <video id="sv-vid" class="sv-media" width="380" height="680" style="display:none" autoplay muted playsinline title="Story video"></video>
     <div class="sv-gradient" id="sv-gradient"></div>
     <div class="sv-progress-bar" id="sv-progress-bar"></div>
     <div class="sv-head" id="sv-head">
@@ -1176,27 +1196,28 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--text);letter-
         <div class="sv-uname" id="sv-uname"></div>
         <div class="sv-time" id="sv-time"></div>
       </div>
-      <button class="sv-close" id="sv-close">✕</button>
+      <button class="sv-close" id="sv-close" aria-label="Close story viewer">✕</button>
     </div>
     <div class="sv-content" id="sv-content">
       <div class="sv-text" id="sv-text"></div>
     </div>
     <div class="sv-nav">
-      <div class="sv-nav-prev" id="sv-nav-prev"></div>
-      <div class="sv-nav-next" id="sv-nav-next"></div>
+      <div class="sv-nav-prev" id="sv-nav-prev" role="button" aria-label="Previous story" tabindex="0"></div>
+      <div class="sv-nav-next" id="sv-nav-next" role="button" aria-label="Next story" tabindex="0"></div>
     </div>
   </div>
 </div>
 
 <!-- STORY CREATE MODAL -->
-<div class="story-create-modal" id="story-create-modal">
+<div class="story-create-modal" id="story-create-modal" role="dialog" aria-modal="true" aria-label="Create story">
   <div class="scm-box">
     <div class="scm-title">✨ Add Story</div>
-    <div class="scm-preview" id="scm-preview" onclick="document.getElementById('scm-file-input').click()">
-      <img id="scm-prev-img" style="display:none;width:100%;height:100%;object-fit:cover">
-      <video id="scm-prev-vid" style="display:none;width:100%;height:100%;object-fit:cover" playsinline></video>
+    <div class="scm-preview" id="scm-preview" onclick="document.getElementById('scm-file-input').click()" role="button" aria-label="Add photo or video">
+      <!-- FIX BP#65: story create preview explicit dimensions -->
+      <img id="scm-prev-img" alt="Story preview" width="360" height="560" style="display:none;width:100%;height:100%;object-fit:cover">
+      <video id="scm-prev-vid" width="360" height="560" style="display:none;width:100%;height:100%;object-fit:cover" playsinline title="Story video preview"></video>
       <div class="scm-preview-placeholder" id="scm-placeholder">
-        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
         <p>Tap to add photo or video</p>
       </div>
     </div>
@@ -1210,13 +1231,13 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--text);letter-
 </div>
 
 <!-- NOTIFICATION TOAST -->
-<div class="notif-toast" id="notif-toast">
+<div class="notif-toast" id="notif-toast" role="status" aria-live="polite">
   <div class="notif-toast-icon" id="notif-toast-icon">🔔</div>
   <div class="notif-toast-body">
     <div class="notif-toast-title" id="notif-toast-title">Notification</div>
     <div class="notif-toast-msg" id="notif-toast-msg"></div>
   </div>
-  <button class="notif-toast-close" id="notif-toast-close">✕</button>
+  <button class="notif-toast-close" id="notif-toast-close" aria-label="Dismiss notification">✕</button>
 </div>
 
 <div class="cfg-bar" id="cfg-bar">
@@ -1243,7 +1264,7 @@ var selectedMembers=[];
 var feedLoaded=false, newPostCount=0;
 /* WebRTC */
 var pc=null, localStream=null, callRoomId=null, callIsVideo=false, isCaller=false, callUnsub=null;
-var currentPeerId=null, currentPeerName='';
+/* FIX BP#20: removed duplicate declarations of currentPeerId and currentPeerName */
 var currentPeerId=null, currentPeerName='';
 var isMuted=false, isCamOff=false;
 
@@ -1293,7 +1314,6 @@ function showOverflowMenu(anchor, items, preferRight){
     menu.appendChild(btn);
   });
   document.body.appendChild(menu);
-  // Position using getBoundingClientRect — works on mobile
   var r=anchor.getBoundingClientRect();
   var menuH=menu.offsetHeight||120;
   var menuW=menu.offsetWidth||170;
@@ -1512,12 +1532,7 @@ function loadAllUsers(){
   });
 }
 
-/* ════ NOTIFICATIONS / BADGES ═══════════════════
-   FIX: Use explicit style.display instead of class
-   toggling — this forces a repaint on all browsers
-   including mobile Safari/WebKit which can silently
-   drop class-only display:none→flex transitions.
-═════════════════════════════════════════════════ */
+/* ════ NOTIFICATIONS / BADGES ═══════════════════ */
 function setBadge(el, count){
   if(!el)return;
   if(count>0){
@@ -1553,7 +1568,6 @@ function listenUnreadForRoom(roomId){
     unreadCounts[roomId]=count;
     totalUnread=Object.values(unreadCounts).reduce(function(a,b){return a+b},0);
     updateChatBadge();
-    // sidebar row badge
     var row=document.querySelector('[data-room="'+roomId+'"]');
     if(row){
       var badge=row.querySelector('.cs-unread');
@@ -1624,9 +1638,15 @@ function buildPostCard(p){
   var mediaHtml='';
   if(p.mediaUrl){
     var t=p.mediaType||'';
-    if(t.startsWith('video'))mediaHtml='<div class="post-media"><video src="'+esc(p.mediaUrl)+'" controls preload="metadata"></video></div>';
-    else if(t.startsWith('image'))mediaHtml='<div class="post-media"><img src="'+esc(p.mediaUrl)+'" loading="lazy" style="cursor:pointer" data-lb="'+esc(p.mediaUrl)+'"></div>';
-    else mediaHtml='<div style="padding:8px 16px"><a class="msg-file-link" href="'+esc(p.mediaUrl)+'" target="_blank" rel="noopener">📎 Download attachment</a></div>';
+    if(t.startsWith('video')){
+      /* FIX BP#65: video with preload=none to avoid unnecessary network requests */
+      mediaHtml='<div class="post-media"><video src="'+esc(p.mediaUrl)+'" controls preload="none" title="Post video"></video></div>';
+    } else if(t.startsWith('image')){
+      /* FIX BP#65: explicit width/height on post images */
+      mediaHtml='<div class="post-media"><img src="'+esc(p.mediaUrl)+'" loading="lazy" width="600" height="400" style="cursor:pointer" alt="Post image" data-lb="'+esc(p.mediaUrl)+'"></div>';
+    } else {
+      mediaHtml='<div style="padding:8px 16px"><a class="msg-file-link" href="'+esc(p.mediaUrl)+'" target="_blank" rel="noopener">📎 Download attachment</a></div>';
+    }
   }
   div.innerHTML='<div class="post-head">'
     +'<div class="post-av" style="background:'+ug+'">'+uname[0].toUpperCase()+'</div>'
@@ -1636,9 +1656,9 @@ function buildPostCard(p){
     +(p.text?'<div class="post-text">'+esc(p.text)+'</div>':'')
     +mediaHtml
     +'<div class="post-reactions">'+reactionBtns
-    +'<button class="post-comment-toggle" data-pid="'+p.id+'"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>'+(p.commentCount||0?p.commentCount:'')+'</button></div>'
+    +'<button class="post-comment-toggle" data-pid="'+p.id+'"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>'+(p.commentCount||0?p.commentCount:'')+'</button></div>'
     +'<div class="post-comments" id="comments-'+p.id+'"><div class="comment-list" id="clist-'+p.id+'"></div>'
-    +'<div class="comment-input-row"><input class="comment-input" id="cinput-'+p.id+'" placeholder="Write a comment…">'
+    +'<div class="comment-input-row"><input class="comment-input" id="cinput-'+p.id+'" placeholder="Write a comment…" aria-label="Write a comment">'
     +'<button class="comment-send" data-pid="'+p.id+'">Send</button></div></div>';
 
   div.querySelectorAll('.react-btn').forEach(function(btn){
@@ -1670,7 +1690,6 @@ async function togglePostReaction(pid,emoji){
   if(arr.includes(me.uid))update['reactions.'+emoji]=FB.arrayRemove(me.uid);
   else{
     update['reactions.'+emoji]=FB.arrayUnion(me.uid);
-    // Notify post author
     if(pdata.authorId&&pdata.authorId!==me.uid)
       createNotification(pdata.authorId,'reaction','reacted '+emoji+' to your post');
   }
@@ -1787,7 +1806,6 @@ function renderChatList(list){
   el.querySelectorAll('.cs-row[data-type="dm"]').forEach(function(row){
     listenUnreadForRoom(row.dataset.room);
     row.addEventListener('click',function(){openDM(row.dataset.uid,row.dataset.name)});
-    // Listen presence for each user in list
     var uid=row.dataset.uid;
     var roomId=row.dataset.room;
     FB.onSnapshot(FB.doc(FB.db,'presence',uid),function(snap){
@@ -1803,7 +1821,6 @@ function renderChatList(list){
   loadGroups();
 }
 
-/* Start group unread listeners at boot */
 function loadGroupsAtBoot(){
   var q=FB.query(FB.collection(FB.db,'groups'),FB.where('members','array-contains',me.uid));
   FB.onSnapshot(q,function(snap){
@@ -1825,7 +1842,7 @@ async function loadGroups(){
       var row=document.createElement('div');
       row.className='cs-row cs-group-row'+act;
       row.dataset.room=grp.id;row.dataset.type='group';row.dataset.gname=grp.name;
-      row.innerHTML='<div class="cs-av" style="background:var(--grad-cool)">👥</div>'
+      row.innerHTML='<div class="cs-av" style="background:var(--grad-cool)" aria-hidden="true">👥</div>'
         +'<div class="cs-info"><div class="cs-name">'+esc(grp.name)+'</div><div class="cs-last">'+grp.members.length+' members</div></div>'
         +'<span class="cs-unread" id="unread-'+grp.id+'"></span>';
       listenUnreadForRoom(grp.id);
@@ -1872,13 +1889,11 @@ function openDM(uid,uname){
   var roomId=[me.uid,uid].sort().join('_');
   chatWith=roomId;chatWithName=uname;chatIsGroup=false;
   g('ch-name').textContent=uname;
-  // Set up presence indicator
   if(currentPresenceUnsub){currentPresenceUnsub();currentPresenceUnsub=null}
   updateChatHeadPresence(userPresenceMap[uid]||false);
   currentPresenceUnsub=listenPresence(uid,function(isOnline){
     userPresenceMap[uid]=isOnline;
     updateChatHeadPresence(isOnline);
-    // Also update sidebar dot
     var row=document.querySelector('[data-room="'+roomId+'"]');
     if(row){var dot=row.querySelector('.presence-dot');if(dot){dot.className='presence-dot '+(isOnline?'online':'offline')}}
   });
@@ -1891,7 +1906,6 @@ function openDM(uid,uname){
   g('btn-voice-call').dataset.peer=uid;g('btn-video-call').dataset.peer=uid;
   g('call-overlay').dataset.peer=uid;g('call-overlay').dataset.pname=uname;
   currentPeerId=uid;currentPeerName=uname;
-  currentPeerId=uid; currentPeerName=uname;
   openChatRoom(roomId,false);
 }
 function openGroup(gid,gname,members){
@@ -1939,13 +1953,15 @@ function appendChatMsg(msg,isGroup){
 
   var bubble=document.createElement('div');
   if(msg.type==='image'){
-    bubble.innerHTML='<img class="msg-img" src="'+esc(msg.url)+'" loading="lazy">';
+    /* FIX BP#65: explicit width/height on chat images */
+    bubble.innerHTML='<img class="msg-img" src="'+esc(msg.url)+'" loading="lazy" width="220" height="165" alt="Image message">';
     bubble.querySelector('.msg-img').addEventListener('click',function(){openLightbox(msg.url)});
   } else if(msg.type==='audio'){
     bubble.className='msg-bubble';
-    bubble.innerHTML='<div class="msg-audio">🎙️ <audio src="'+esc(msg.url)+'" controls></audio></div>';
+    bubble.innerHTML='<div class="msg-audio">🎙️ <audio src="'+esc(msg.url)+'" controls preload="none"></audio></div>';
   } else if(msg.type==='video'){
-    bubble.innerHTML='<video src="'+esc(msg.url)+'" controls style="max-width:220px;border-radius:14px;display:block"></video>';
+    /* FIX BP#65: explicit width/height on chat videos */
+    bubble.innerHTML='<video src="'+esc(msg.url)+'" controls preload="none" width="220" height="165" style="max-width:220px;border-radius:14px;display:block" title="Video message"></video>';
   } else if(msg.type==='file'){
     bubble.className='msg-bubble';
     bubble.innerHTML='<a class="msg-file-link" href="'+esc(msg.url)+'" target="_blank" rel="noopener">📎 '+esc(msg.fileName||'File')+'</a>';
@@ -1965,7 +1981,7 @@ function appendChatMsg(msg,isGroup){
   var canDeleteMsg=(msg.from===me.uid||ADMIN_UIDS.includes(me.uid));
   if(canDeleteMsg){
     var mBtn=document.createElement('button');
-    mBtn.className='msg-menu-btn';mBtn.textContent='⋯';mBtn.title='More options';
+    mBtn.className='msg-menu-btn';mBtn.textContent='⋯';mBtn.title='More options';mBtn.setAttribute('aria-label','Message options');
     mBtn.addEventListener('click',function(e){
       e.stopPropagation();
       document.querySelectorAll('.overflow-menu').forEach(function(m){m.remove()});
@@ -2035,7 +2051,7 @@ function showReactPicker(e,msgId,roomId,out,anchor){
   var picker=document.createElement('div');
   picker.className='react-picker '+(out?'out':'in');
   MSG_REACTIONS.forEach(function(emoji){
-    var btn=document.createElement('button');btn.className='react-picker-btn';btn.textContent=emoji;
+    var btn=document.createElement('button');btn.className='react-picker-btn';btn.textContent=emoji;btn.setAttribute('aria-label','React with '+emoji);
     btn.addEventListener('click',function(ev){ev.stopPropagation();toggleMsgReaction(msgId,roomId,emoji);picker.remove()});
     picker.appendChild(btn);
   });
@@ -2080,7 +2096,6 @@ async function sendChatMsg(){
   var msgData={from:me.uid,text:text,type:'text',read:false,createdAt:FB.serverTimestamp()};
   if(chatIsGroup)msgData.senderName=myName;
   await FB.addDoc(FB.collection(FB.db,'chats/'+chatWith+'/messages'),msgData);
-  // Notify the DM recipient
   if(!chatIsGroup){
     var parts=chatWith.split('_');
     var recipientId=parts.find(function(p){return p!==me.uid});
@@ -2113,9 +2128,7 @@ async function uploadAvatar(file){
     g('nav-av-upload').textContent='…';
     var res=await uploadFile(file,function(){});
     myAvatarUrl=res.url;
-    // Update Firebase
     await FB.updateDoc(FB.doc(FB.db,'users',me.uid),{avatarUrl:myAvatarUrl});
-    // Update UI
     applyAvatar('nav-av', 'nav-av-img', myAvatarUrl, myName, myGrad);
     applyAvatar('cp-av', null, myAvatarUrl, myName, myGrad);
   }catch(e){showErrorModal('Upload failed',e.message)}
@@ -2131,7 +2144,6 @@ function applyAvatar(divId, imgId, url, name, gradient){
       var img=g(imgId);
       if(img){img.src=url;img.style.display='block'}
     } else {
-      // inline image inside div
       div.style.backgroundImage='url('+url+')';
       div.style.backgroundSize='cover';
       div.style.backgroundPosition='center';
@@ -2146,7 +2158,7 @@ function applyAvatar(divId, imgId, url, name, gradient){
 function avatarHTML(url, name, gradient, sizeClass, extraStyle){
   if(url){
     return '<div class="'+sizeClass+'" style="background:transparent;'+(extraStyle||'')+'">'
-      +'<img src="'+esc(url)+'" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;display:block">'
+      +'<img src="'+esc(url)+'" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;display:block" alt="'+esc(name)+' avatar">'
       +'</div>';
   }
   return '<div class="'+sizeClass+'" style="background:'+gradient+';'+(extraStyle||'')+'">'+esc(name[0].toUpperCase())+'</div>';
@@ -2175,7 +2187,6 @@ function listenPresence(userId, onUpdate){
       var data=snap.data();
       var online=data.online===true;
       var lastSeen=data.lastSeen;
-      // Consider online if heartbeat within last 60s
       if(online && lastSeen){
         var ms=Date.now()-(lastSeen.toDate?lastSeen.toDate():new Date(lastSeen)).getTime();
         online=ms<90000;
@@ -2217,12 +2228,11 @@ function loadStories(){
   );
   if(storiesUnsub)storiesUnsub();
   storiesUnsub=FB.onSnapshot(q,function(snap){
-    // Group by author uid
     var byUser={};
     snap.forEach(function(d){
       var s=Object.assign({id:d.id},d.data());
       var ts=s.createdAt&&s.createdAt.toDate?s.createdAt.toDate():new Date(0);
-      if(ts<cutoff)return; // expired
+      if(ts<cutoff)return;
       if(!byUser[s.authorId])byUser[s.authorId]={authorId:s.authorId,authorName:s.authorName,authorGrad:s.authorGrad,authorAvatar:s.authorAvatar||'',stories:[]};
       byUser[s.authorId].stories.push(s);
     });
@@ -2232,7 +2242,6 @@ function loadStories(){
 
 function renderStoriesBar(byUser){
   var row=g('stories-row');if(!row)return;
-  // Keep the add-story button
   row.innerHTML='';
   var addBtn=document.createElement('div');
   addBtn.className='story-item';addBtn.id='add-story-btn';
@@ -2240,7 +2249,6 @@ function renderStoriesBar(byUser){
   addBtn.onclick=openStoryCreate;
   row.appendChild(addBtn);
 
-  // My stories first, then others
   var myEntry=byUser[me.uid];
   var others=Object.values(byUser).filter(function(u){return u.authorId!==me.uid});
   var ordered=[];
@@ -2252,8 +2260,9 @@ function renderStoriesBar(byUser){
     var item=document.createElement('div');
     item.className='story-item';
     var initials=entry.authorName?entry.authorName[0].toUpperCase():'?';
+    /* FIX BP#65: story avatar img gets explicit width/height */
     var avInner=entry.authorAvatar
-      ?'<img src="'+esc(entry.authorAvatar)+'" style="width:100%;height:100%;object-fit:cover;border-radius:15px">'
+      ?'<img src="'+esc(entry.authorAvatar)+'" width="50" height="50" style="width:100%;height:100%;object-fit:cover;border-radius:15px" alt="'+esc(entry.authorName||'User')+' avatar">'
       :'<span style="font-size:1.1rem;font-weight:900;font-family:var(--font-display);color:#fff">'+initials+'</span>';
     item.innerHTML='<div class="story-ring'+(seen?' seen':'')+'"><div class="story-av" style="background:'+(entry.authorAvatar?'transparent':entry.authorGrad||'var(--grad-main)')+'">'+avInner+'</div></div><span class="story-name">'+esc(entry.authorId===me.uid?'You':entry.authorName)+'</span>';
     item.onclick=function(){openStoryViewer(entry.stories, entry)};
@@ -2291,7 +2300,6 @@ function renderStorySlide(){
   g('sv-empty').classList.add('hidden');
 
   var s=list[storyCurrentIdx];
-  // Progress bar
   var pb=g('sv-progress-bar');pb.innerHTML='';
   list.forEach(function(_, i){
     var seg=document.createElement('div');seg.className='sv-seg';
@@ -2299,27 +2307,25 @@ function renderStorySlide(){
     seg.appendChild(fill);pb.appendChild(seg);
   });
 
-  // Media
   var img=g('sv-img'),vid=g('sv-vid');
   if(s.mediaType==='video'&&s.mediaUrl){
     img.style.display='none';vid.style.display='block';vid.src=s.mediaUrl;vid.play().catch(function(){});
   } else if(s.mediaUrl){
     vid.style.display='none';img.style.display='block';img.src=s.mediaUrl;
+    img.alt=(s.authorName||'User')+' story';
   } else {
     img.style.display='none';vid.style.display='none';
-    // Text-only: show gradient bg
     g('sv-container').style.background='var(--grad-'+(['main','cool','fire','green','sunny'][Math.floor(Math.random()*5)])+')';
   }
 
-  // Head
+  /* FIX BP#65: sv-av img with explicit dimensions */
   var avEl=g('sv-av');
-  if(s.authorAvatar){avEl.innerHTML='<img src="'+esc(s.authorAvatar)+'" style="width:100%;height:100%;object-fit:cover;border-radius:12px">';}
+  if(s.authorAvatar){avEl.innerHTML='<img src="'+esc(s.authorAvatar)+'" width="36" height="36" style="width:100%;height:100%;object-fit:cover;border-radius:12px" alt="'+esc(s.authorName||'User')+' avatar">';}
   else{avEl.style.background=s.authorGrad||'var(--grad-main)';avEl.textContent=s.authorName?s.authorName[0].toUpperCase():'?'}
   g('sv-uname').textContent=s.authorId===me.uid?'You (your story)':s.authorName||'Unknown';
   g('sv-time').textContent=timeAgo(s.createdAt);
   g('sv-text').textContent=s.caption||'';
 
-  // Animate active segment
   var activeFill=pb.children[storyCurrentIdx]&&pb.children[storyCurrentIdx].querySelector('.sv-seg-fill');
   if(activeFill){
     var dur=s.mediaType==='video'?15000:5000;
@@ -2363,7 +2369,6 @@ async function submitStory(){
 var notifList=[];var notifUnsub=null;var toastTimeout=null;var notifFirstLoad=true;
 
 function initNotifications(){
-  // Check / request permission banner
   if(typeof Notification!=='undefined'){
     if(Notification.permission==='default'){
       g('notif-perm-banner')&&g('notif-perm-banner').classList.remove('hidden');
@@ -2384,14 +2389,12 @@ function listenFirestoreNotifications(){
   notifUnsub=FB.onSnapshot(q,function(snap){
     var newItems=[];
     snap.forEach(function(d){newItems.push(Object.assign({id:d.id},d.data()))});
-    // On first load just populate the list — never show toasts for existing notifs
     if(notifFirstLoad){
       notifFirstLoad=false;
       notifList=newItems;
       renderNotifPanel();
       return;
     }
-    // For subsequent updates: toast only genuinely new unread items
     var knownIds={};
     notifList.forEach(function(n){knownIds[n.id]=true});
     newItems.forEach(function(n){
@@ -2407,7 +2410,6 @@ function listenFirestoreNotifications(){
 function renderNotifPanel(){
   var list=g('notif-list');if(!list)return;
   var unread=notifList.filter(function(n){return !n.read});
-  // Update badge
   var badge=g('notif-badge');
   if(unread.length>0){
     badge.textContent=unread.length>99?'99+':String(unread.length);
@@ -2417,7 +2419,6 @@ function renderNotifPanel(){
     badge.classList.remove('on');
     g('notif-btn')&&g('notif-btn').classList.remove('has-notifs');
   }
-  // Render items
   if(notifList.length===0){
     list.innerHTML='<div class="notif-empty"><div class="notif-empty-icon">&#x1f514;</div>No notifications yet</div>';
     return;
@@ -2430,8 +2431,9 @@ function renderNotifPanel(){
       +' data-nid="'+esc(n.id)+'"'
       +' data-type="'+esc(n.type||'')+'"'
       +' data-from-uid="'+esc(n.fromUid||'')+'"'
-      +' data-from-name="'+esc(n.fromName||'')+'">'
-      +'<div class="notif-item-icon '+(n.type||'default')+'">'+icon+'</div>'
+      +' data-from-name="'+esc(n.fromName||'')+'"'
+      +' role="button" tabindex="0">'
+      +'<div class="notif-item-icon '+(n.type||'default')+'" aria-hidden="true">'+icon+'</div>'
       +'<div class="notif-item-body">'
       +'<div class="notif-item-text"><strong>'+esc(n.fromName||'Someone')+'</strong> '+esc(n.body||'')+'</div>'
       +'<div class="notif-item-time">'+timeAgo(n.createdAt)+'</div>'
@@ -2467,7 +2469,7 @@ async function markNotifRead(nid){
 }
 
 async function createNotification(toUid, type, body){
-  if(toUid===me.uid)return; // Don't notify yourself
+  if(toUid===me.uid)return;
   try{
     await FB.addDoc(FB.collection(FB.db,'notifications'),{
       toUid:toUid, fromUid:me.uid, fromName:myName,
@@ -2485,7 +2487,6 @@ function showNotifToast(n){
   toast.classList.add('show');
   if(toastTimeout)clearTimeout(toastTimeout);
   toastTimeout=setTimeout(function(){toast.classList.remove('show')},5000);
-  // Also try browser notification
   if(typeof Notification!=='undefined'&&Notification.permission==='granted'){
     try{
       new Notification('Chaty — '+(n.fromName||'Someone'),{
@@ -2498,7 +2499,6 @@ function showNotifToast(n){
 }
 
 function pushNotification(opts){
-  // opts: {type, icon, title, msg}
   var toast=g('notif-toast');if(!toast)return;
   g('notif-toast-icon').textContent=opts.icon||'🔔';
   g('notif-toast-title').textContent=opts.title||'Notification';
@@ -2508,7 +2508,6 @@ function pushNotification(opts){
   toastTimeout=setTimeout(function(){toast.classList.remove('show')},4000);
 }
 
-/* ════ END NEW FEATURES ═══════════════════════════ */
 /* ── Voice recording ──────────────────────────── */
 async function toggleVoiceRecording(){
   if(mediaRecorder&&mediaRecorder.state==='recording'){
@@ -2578,7 +2577,6 @@ function listenIncomingCalls(){
     snap.docChanges().forEach(function(change){
       if(change.type==='added'){
         var data=change.doc.data();
-        // Ignore calls older than 60s (stale)
         var calledAt=data.createdAt&&data.createdAt.toDate?data.createdAt.toDate():null;
         if(calledAt&&Date.now()-calledAt.getTime()>60000)return;
         if(!g('call-overlay').classList.contains('on')){
@@ -2586,9 +2584,7 @@ function listenIncomingCalls(){
           var callerName=data.callerName||'Someone';
           var callType=(data.isVideo?'video':'voice');
           showCallOverlay(callerName,grad(data.callerId||'x'),'Incoming '+callType+' call…',true);
-          // In-app toast
           pushNotification({type:'call',icon:'📞',title:callerName+' is calling',msg:'Incoming '+callType+' call — tap to answer'});
-          // Browser notification
           if(typeof Notification!=='undefined'&&Notification.permission==='granted'){
             try{new Notification('📞 '+callerName,{body:'Incoming '+callType+' call on Chaty',tag:'chaty-call'});}catch(e){}
           }
@@ -2614,16 +2610,13 @@ async function acceptCall(){
   pc.onicecandidate=function(e){if(e.candidate)FB.updateDoc(FB.doc(FB.db,'calls',callRoomId),{calleeCandidates:FB.arrayUnion(JSON.stringify(e.candidate))}).catch(function(){})};
   pc.ontrack=function(e){g('call-remote-video').srcObject=e.streams[0]};
   await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
-  // Apply any candidates already there
   (data.callerCandidates||[]).forEach(function(c){try{pc.addIceCandidate(new RTCIceCandidate(JSON.parse(c)))}catch(e){}});
   var answer=await pc.createAnswer();await pc.setLocalDescription(answer);
   await FB.updateDoc(FB.doc(FB.db,'calls',callRoomId),{answer:{type:answer.type,sdp:answer.sdp},status:'answered'});
-  // Listen for late-arriving ICE candidates and call end
   var seenCandidates={};
   callUnsub=FB.onSnapshot(FB.doc(FB.db,'calls',callRoomId),function(snap){
     var d=snap.data();if(!d)return;
     if(d.status==='ended'){hangup();return;}
-    // Add any new caller candidates (trickle ICE)
     (d.callerCandidates||[]).forEach(function(c){
       if(!seenCandidates[c]){
         seenCandidates[c]=true;
@@ -2683,10 +2676,14 @@ function uploadFile(file,onProgress){
 }
 
 /* ── Lightbox ─────────────────────────────────── */
-function openLightbox(src){g('lb-img').src=src;g('lightbox').classList.add('on')}
+function openLightbox(src){
+  var lbImg=g('lb-img');
+  lbImg.src=src;
+  lbImg.alt='Full size image';
+  g('lightbox').classList.add('on');
+}
 
 }());
 </script>
 </body>
 </html>
-
