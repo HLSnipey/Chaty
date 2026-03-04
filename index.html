@@ -136,6 +136,15 @@ a{color:inherit;text-decoration:none;}
   border:2px solid var(--white);
 }
 #av-file-input{display:none;}
+/* Mobile nav avatar — base styles always present */
+#mobile-nav-av{
+  width:34px;height:34px;border-radius:50%;
+  background:var(--peach-lt);border:2px solid var(--sand);
+  display:flex;align-items:center;justify-content:center;
+  font-weight:600;font-size:.8rem;color:var(--terra-dk);overflow:hidden;
+  cursor:pointer;flex-shrink:0;
+}
+#mobile-nav-av img{width:100%;height:100%;object-fit:cover;border-radius:50%;}
 #notif-btn{
   position:relative;padding:.45rem;border-radius:var(--r-full);
   color:var(--brown);transition:all .2s;font-size:1.1rem;
@@ -148,7 +157,7 @@ a{color:inherit;text-decoration:none;}
   border:2px solid var(--white);
 }
 #notif-panel{
-  position:absolute;top:calc(100% + 8px);right:0;width:320px;
+  position:absolute;top:calc(100% + 4px);right:1rem;width:320px;
   background:var(--white);border:1.5px solid var(--sand);border-radius:var(--r);
   box-shadow:var(--shadow-lg);z-index:200;overflow:hidden;
   display:none;
@@ -800,19 +809,117 @@ a{color:inherit;text-decoration:none;}
    MOBILE (<=640px)
 ════════════════════════════════════ */
 @media(max-width:640px){
-  .tab-label{display:none;}
-  .topnav{padding:.6rem 1rem;}
-  #btn-logout span{display:none;}
+  /* ── Hide desktop nav elements ── */
+  .nav-logo{display:none;}
+  .nav-tabs{display:none;}
+  .nav-right{display:none;}
+
+  /* ── Topnav becomes a status bar ── */
+  .topnav{
+    justify-content:space-between;
+    padding:.55rem 1rem;
+    min-height:48px;
+  }
+
+  /* ── Bottom tab bar ── */
+  #mobile-tabbar{
+    display:flex!important;
+    position:fixed;bottom:0;left:0;right:0;
+    height:calc(54px + env(safe-area-inset-bottom,0px));
+    background:var(--white);
+    border-top:1.5px solid var(--sand);
+    z-index:60;
+    padding-bottom:env(safe-area-inset-bottom,0px);
+    box-shadow:0 -4px 20px rgba(42,26,14,.08);
+  }
+  .main{padding-bottom:calc(58px + env(safe-area-inset-bottom,0px));}
+
+  /* ── Mobile top bar ── */
+  #mobile-top-logo{
+    display:flex;align-items:center;gap:.4rem;
+    font-family:'Fraunces',serif;font-size:1.2rem;font-weight:500;color:var(--terra);
+  }
+  #mobile-top-logo svg{width:20px;height:20px;}
+  #mobile-top-right{display:flex;align-items:center;gap:.5rem;}
+  /* mobile-nav-av base styles set above */
+  #mobile-notif-btn{
+    position:relative;padding:.3rem;font-size:1.1rem;
+    border-radius:var(--r-full);color:var(--brown);
+  }
+  #mobile-notif-badge{
+    position:absolute;top:-2px;right:-2px;
+    background:var(--red);color:#fff;font-size:.55rem;font-weight:700;
+    border-radius:var(--r-full);padding:.08rem .3rem;min-width:14px;text-align:center;
+    border:2px solid var(--white);
+  }
+  #mobile-logout-btn{
+    padding:.3rem .65rem;border-radius:var(--r-full);
+    font-size:.75rem;color:var(--brown);border:1.5px solid var(--sand);
+  }
+
+  /* Tab buttons */
+  .mob-tab{
+    flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:.18rem;padding:.55rem .3rem .45rem;
+    font-size:.62rem;font-weight:500;color:var(--brown);
+    transition:color .18s;position:relative;
+    cursor:pointer;border:none;background:none;
+  }
+  .mob-tab.active{color:var(--terra);}
+  .mob-tab .mob-icon{font-size:1.3rem;line-height:1;}
+  .mob-tab .mob-label{font-size:.6rem;letter-spacing:.01em;}
+  .mob-tab .badge{
+    position:absolute;top:6px;right:calc(50% - 18px);
+    background:var(--red);color:#fff;font-size:.55rem;font-weight:700;
+    border-radius:var(--r-full);padding:.08rem .32rem;min-width:14px;text-align:center;
+    border:2px solid var(--white);
+  }
+
+  /* People grid */
   #people-grid{grid-template-columns:repeat(2,1fr);}
-  #chat-sidebar{position:absolute;inset:0;width:100%;z-index:10;transform:translateX(0);}
+
+  /* Chat page — sidebar fullscreen slide */
+  #page-chat{position:relative;}
+  #chat-sidebar{
+    position:absolute;inset:0;width:100%;z-index:10;
+    transform:translateX(0);
+  }
   #chat-sidebar.slide-out{transform:translateX(-100%);}
   #ch-back-btn{display:block;}
   #chat-main{width:100%;}
+
+  /* Messages wider */
   .msg-wrap{max-width:86%;}
-  #notif-panel{right:.5rem;width:calc(100vw - 1rem);}
-  #notif-toast{left:1rem;right:1rem;bottom:1rem;max-width:none;}
+
+  /* Always show action buttons */
   .msg-menu-btn{opacity:1;}
   .post-menu-btn{opacity:1;}
+
+  /* Notification panel full width */
+  #notif-panel{right:.5rem;left:.5rem;width:auto;top:calc(100% + 4px);}
+
+  /* Toast full width bottom */
+  #notif-toast{left:.75rem;right:.75rem;bottom:calc(64px + env(safe-area-inset-bottom,.4rem));max-width:none;}
+
+  /* Feed inner padding tighter */
+  #feed-inner{padding:1rem .85rem;gap:1rem;}
+  #people-inner{padding:1rem .85rem;gap:1rem;}
+
+  /* Create post media buttons wrap */
+  .cp-actions{flex-wrap:wrap;gap:.4rem;}
+
+  /* Auth screen padding */
+  .auth-wrap{padding:1rem;}
+  .auth-card{padding:1.5rem;}
+}
+
+/* Desktop — hide mobile elements */
+@media(min-width:641px){
+  #mobile-tabbar{display:none !important;}
+  #mobile-top-logo{display:none;}
+  #mobile-top-right{display:none !important;}
+  #mobile-nav-av{display:none !important;}
+  #notif-panel{right:1rem;}
 }
 </style>
 </head>
@@ -860,8 +967,20 @@ a{color:inherit;text-decoration:none;}
 
 <!-- ═══ APP ═══ -->
 <div id="app">
-  <!-- Top Nav -->
+  <!-- Top Nav (desktop) -->
   <nav class="topnav">
+    <!-- MOBILE top bar content -->
+    <div id="mobile-top-logo">
+      <svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" width="20" height="20">
+        <circle cx="14" cy="14" r="3.5"/>
+        <ellipse cx="14" cy="6" rx="2.5" ry="3.5" transform="rotate(0 14 14)"/>
+        <ellipse cx="14" cy="6" rx="2.5" ry="3.5" transform="rotate(90 14 14)"/>
+        <ellipse cx="14" cy="6" rx="2.5" ry="3.5" transform="rotate(180 14 14)"/>
+        <ellipse cx="14" cy="6" rx="2.5" ry="3.5" transform="rotate(270 14 14)"/>
+      </svg>
+      Chaty
+    </div>
+    <!-- DESKTOP logo -->
     <div class="nav-logo">
       <svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" width="22" height="22">
         <circle cx="14" cy="14" r="3.5"/>
@@ -872,6 +991,7 @@ a{color:inherit;text-decoration:none;}
       </svg>
       Chaty
     </div>
+    <!-- DESKTOP tabs -->
     <div class="nav-tabs">
       <button class="ntab" id="ntab-feed" onclick="switchPage('feed')">
         <span class="tab-icon">🌸</span><span class="tab-label">Feed</span>
@@ -885,23 +1005,31 @@ a{color:inherit;text-decoration:none;}
         <span class="badge hidden" id="badge-chat"></span>
       </button>
     </div>
+    <!-- DESKTOP right -->
     <div class="nav-right">
       <div id="nav-av-wrap">
         <div id="nav-av"></div>
         <div id="nav-av-upload" onclick="g('av-file-input').click()">📷</div>
         <input type="file" id="av-file-input" accept="image/*"/>
       </div>
-      <div style="position:relative;">
-        <button id="notif-btn" onclick="toggleNotifPanel()">🔔<span class="badge hidden" id="notif-badge"></span></button>
-        <div id="notif-panel" class="hidden">
-          <div class="notif-panel-head">
-            <span>Notifications</span>
-            <button id="mark-all-read" onclick="markAllNotifsRead()">Mark all read</button>
-          </div>
-          <div id="notif-list"></div>
-        </div>
-      </div>
+      <button id="notif-btn" onclick="toggleNotifPanel()">🔔<span class="badge hidden" id="notif-badge"></span></button>
       <button id="btn-logout" onclick="doLogout()"><span>Log out</span> 👋</button>
+    </div>
+    <!-- MOBILE right -->
+    <div id="mobile-top-right">
+      <button id="mobile-notif-btn" onclick="toggleNotifPanel()">
+        🔔<span class="badge hidden" id="mobile-notif-badge"></span>
+      </button>
+      <div id="mobile-nav-av" onclick="g('av-file-input').click()"></div>
+      <button id="mobile-logout-btn" onclick="doLogout()">👋</button>
+    </div>
+    <!-- NOTIF PANEL: child of topnav which has position:relative — works on both desktop & mobile -->
+    <div id="notif-panel">
+      <div class="notif-panel-head">
+        <span>Notifications</span>
+        <button id="mark-all-read" onclick="markAllNotifsRead()">Mark all read</button>
+      </div>
+      <div id="notif-list"></div>
     </div>
   </nav>
 
@@ -1005,11 +1133,27 @@ a{color:inherit;text-decoration:none;}
           </div>
         </div>
       </div>
-    </div>
-  </div>
-</div>
+    </div><!-- /main -->
 
-<!-- GROUP MODAL -->
+  <!-- MOBILE BOTTOM TAB BAR (inside #app so z-index/stacking context is correct) -->
+  <div id="mobile-tabbar">
+    <button class="mob-tab active" id="mob-tab-feed" onclick="switchPage('feed')">
+      <span class="mob-icon">🌸</span>
+      <span class="mob-label">Feed</span>
+      <span class="badge hidden" id="mob-badge-feed"></span>
+    </button>
+    <button class="mob-tab" id="mob-tab-people" onclick="switchPage('people')">
+      <span class="mob-icon">🌿</span>
+      <span class="mob-label">People</span>
+    </button>
+    <button class="mob-tab" id="mob-tab-chat" onclick="switchPage('chat')">
+      <span class="mob-icon">💬</span>
+      <span class="mob-label">Chat</span>
+      <span class="badge hidden" id="mob-badge-chat"></span>
+    </button>
+  </div>
+
+</div><!-- /app -->
 <div id="group-modal">
   <div class="modal-card">
     <div class="modal-title">Create a group ✦</div>
@@ -1155,7 +1299,20 @@ function timeAgo(ts){
   return Math.floor(s/86400)+'d ago';
 }
 function showErrorModal(title,msg){g('err-modal-title').textContent=title;g('err-modal-msg').textContent=msg;g('err-modal').classList.add('open');}
-function setBadge(el,n){if(!el)return;if(n>0){el.textContent=n>99?'99+':n;el.classList.remove('hidden');}else{el.classList.add('hidden');}}
+function setBadge(el,n){
+  // el can be a single element or a string ID
+  var els=[];
+  if(typeof el==='string'){var e=g(el);if(e)els.push(e);}
+  else if(el){els.push(el);}
+  // Also sync mobile counterparts
+  if(el===g('badge-feed')||el===g('mob-badge-feed')){els=[g('badge-feed'),g('mob-badge-feed')].filter(Boolean);}
+  if(el===g('badge-chat')||el===g('mob-badge-chat')){els=[g('badge-chat'),g('mob-badge-chat')].filter(Boolean);}
+  if(el===g('notif-badge')||el===g('mobile-notif-badge')){els=[g('notif-badge'),g('mobile-notif-badge')].filter(Boolean);}
+  els.forEach(function(e){
+    if(n>0){e.textContent=n>99?'99+':n;e.classList.remove('hidden');}
+    else{e.classList.add('hidden');}
+  });
+}
 function openLightbox(src){g('lb-img').src=src;g('lightbox').classList.add('on');}
 function closeLightbox(){g('lightbox').classList.remove('on');}
 function avatarHTML(name,uid,avatarUrl,size){
@@ -1269,7 +1426,6 @@ function enterApp(){
     myName=me.displayName||'User';
     myGrad=grad(me.uid);
     renderNavAvatar();
-    setAvEl(g('cp-av'),myName,me.uid,myAvatarUrl);
     loadAllUsers();
     loadGroupsAtBoot();
     listenIncomingCalls();
@@ -1281,18 +1437,43 @@ function enterApp(){
   });
 }
 function renderNavAvatar(){
-  if(myAvatarUrl){g('nav-av').innerHTML='<img src="'+esc(myAvatarUrl)+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/>';}
-  else{g('nav-av').innerHTML='<div style="font-weight:600;font-size:.9rem;color:var(--terra-dk);">'+esc(myName[0].toUpperCase())+'</div>';}
+  var letter=esc((myName||'?')[0].toUpperCase());
+  var bg=grad(me?me.uid:'x');
+  // Desktop nav-av
+  if(myAvatarUrl){
+    g('nav-av').innerHTML='<img src="'+esc(myAvatarUrl)+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/>';
+    g('nav-av').style.background='none';
+  } else {
+    g('nav-av').style.background=bg;
+    g('nav-av').innerHTML='<span style="font-weight:600;font-size:.85rem;color:#fff;">'+letter+'</span>';
+  }
+  // Mobile nav-av
+  var mav=g('mobile-nav-av');
+  if(mav){
+    if(myAvatarUrl){
+      mav.innerHTML='<img src="'+esc(myAvatarUrl)+'"/>';
+      mav.style.background='none';
+    } else {
+      mav.style.background=bg;
+      mav.textContent=letter;
+    }
+  }
+  // Compose box avatar
+  setAvEl(g('cp-av'),myName,me?me.uid:'x',myAvatarUrl);
 }
 
 // ─── Page Switching ─────────────────────────────
 function switchPage(page){
   ['feed','people','chat'].forEach(function(p){
     g('page-'+p).classList.toggle('active',p===page);
-    g('ntab-'+p).classList.toggle('active',p===page);
+    // desktop tabs
+    var dt=g('ntab-'+p);if(dt)dt.classList.toggle('active',p===page);
+    // mobile tabs
+    var mt=g('mob-tab-'+p);if(mt)mt.classList.toggle('active',p===page);
   });
   if(page==='feed'){
-    newPostCount=0;setBadge(g('badge-feed'),0);
+    newPostCount=0;
+    [g('badge-feed'),g('mob-badge-feed')].forEach(function(el){setBadge(el,0);});
     if(!feedLoaded){feedLoaded=true;loadFeed();}
   }
   if(page==='people')renderPeople();
@@ -1307,7 +1488,6 @@ g('av-file-input').addEventListener('change',function(){
   uploadFile(file,null).then(function(res){
     myAvatarUrl=res.url;
     renderNavAvatar();
-    setAvEl(g('cp-av'),myName,me.uid,myAvatarUrl);
     FB.updateDoc(FB.doc(FB.db,'users',me.uid),{avatarUrl:res.url});
   }).catch(function(){showErrorModal('Upload Failed','Could not upload avatar.');});
 });
@@ -1419,7 +1599,8 @@ function loadFeed(){
         if(feedLoaded&&document.getElementById('page-feed').classList.contains('active')){
           renderPostCard(post,true);
         } else if(feedLoaded){
-          newPostCount++;setBadge(g('badge-feed'),newPostCount);
+          newPostCount++;
+          [g('badge-feed'),g('mob-badge-feed')].forEach(function(el){setBadge(el,newPostCount);});
           renderPostCard(post,true);
         } else {
           renderPostCard(post,true);
@@ -1912,7 +2093,8 @@ function listenUnreadForRoom(roomId){
   unreadUnsubs[roomId]=FB.onSnapshot(q,function(snap){
     unreadCounts[roomId]=snap.size;
     totalUnread=Object.values(unreadCounts).reduce(function(a,b){return a+b;},0);
-    setBadge(g('badge-chat'),totalUnread);
+    // Update both desktop and mobile chat badges
+    [g('badge-chat'),g('mob-badge-chat')].forEach(function(el){setBadge(el,totalUnread);});
     renderChatSidebar();renderGroupsSidebar();
   });
 }
@@ -1968,7 +2150,7 @@ function initNotifications(){
 
     renderNotifPanel();
     var unread=notifList.filter(function(n){return!n.read;}).length;
-    setBadge(g('notif-badge'),unread);
+    [g('notif-badge'),g('mobile-notif-badge')].forEach(function(el){setBadge(el,unread);});
   });
 }
 
@@ -2266,10 +2448,10 @@ window.mobileSidebarBack=mobileSidebarBack;
 // ─── CLOSE NOTIF PANEL ON OUTSIDE CLICK ──────────
 document.addEventListener('click',function(e){
   var panel=g('notif-panel');
-  var btn=g('notif-btn');
-  if(panel&&panel.classList.contains('open')&&!panel.contains(e.target)&&!btn.contains(e.target)){
-    closeNotifPanel();
-  }
+  if(!panel||!panel.classList.contains('open'))return;
+  var isBtn=g('notif-btn')&&g('notif-btn').contains(e.target);
+  var isMobBtn=g('mobile-notif-btn')&&g('mobile-notif-btn').contains(e.target);
+  if(!panel.contains(e.target)&&!isBtn&&!isMobBtn)closeNotifPanel();
 });
 
 // ─── BOOT ─────────────────────────────────────────
